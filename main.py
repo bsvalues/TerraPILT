@@ -36,6 +36,8 @@ if 'calculated_data' not in st.session_state:
     st.session_state.calculated_data = None
 if 'historical_data' not in st.session_state:
     st.session_state.historical_data = None
+if 'chart_theme' not in st.session_state:
+    st.session_state.chart_theme = "default"
 
 # Page title and description with improved styling
 st.markdown("""
@@ -64,9 +66,25 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Sidebar for data source selection and controls
-st.sidebar.title("Data Source")
-data_source = st.sidebar.radio("Select Data Source", ("SQL Database", "Excel File"))
+# Sidebar with improved styling
+st.sidebar.markdown("""
+<div style="background-color:#f0f2f6; padding:10px; border-radius:5px">
+    <h2 style="color:#0077b6; text-align:center">PILT Dashboard Controls</h2>
+</div>
+""", unsafe_allow_html=True)
+
+# Add County logo/info section
+st.sidebar.markdown("""
+<div style="text-align:center; margin-bottom:20px">
+    <h4>Benton County</h4>
+    <p>Property Assessment Division</p>
+</div>
+""", unsafe_allow_html=True)
+
+# Data source selection with better styling
+st.sidebar.markdown("### Data Source")
+st.sidebar.markdown("Select the source of property data for PILT calculations:")
+data_source = st.sidebar.radio("", ("SQL Database", "Excel File"))
 
 # Load data based on selected source
 try:
@@ -259,25 +277,124 @@ if st.session_state.pilt_data is not None and not st.session_state.pilt_data.emp
                         st.info("If PDF generation fails, please try Excel or CSV format instead.")
     
     with tab3:
-        st.header("PILT Visualizations")
+        st.markdown("""
+        <div style="background-color:#f0f8ff; padding:10px; border-radius:5px; margin-bottom:20px">
+            <h2 style="color:#0077b6; text-align:center">PILT Visualizations</h2>
+            <p style="text-align:center">Interactive charts and visual analysis of PILT data</p>
+        </div>
+        """, unsafe_allow_html=True)
         
         if st.session_state.calculated_data is not None:
+            # Controls for chart customization
+            st.markdown("### Chart Customization")
+            chart_col1, chart_col2 = st.columns(2)
+            
+            with chart_col1:
+                chart_theme = st.selectbox(
+                    "Chart Color Theme",
+                    options=["default", "blues", "sunburst", "viridis", "plasma", "cividis"],
+                    index=0
+                )
+                
+            with chart_col2:
+                chart_type = st.selectbox(
+                    "District Comparison Chart Type",
+                    options=["Bar Chart", "Pie Chart", "Donut Chart"],
+                    index=0
+                )
+            
             # District comparison chart
-            st.subheader("PILT by District")
+            st.markdown("""
+            <div style="background-color:#f8f9fa; padding:10px; border-radius:5px; margin:15px 0px">
+                <h3 style="color:#0077b6;">PILT by District</h3>
+            </div>
+            """, unsafe_allow_html=True)
+            
             district_summary = aggregate_pilt_by_district(st.session_state.calculated_data)
             
-            fig_district = px.bar(
-                district_summary, 
-                x='District', 
-                y='PILT_Due',
-                title="PILT Due by District",
-                labels={"PILT_Due": "PILT Amount ($)", "District": "Tax District"},
-                color='District'
-            )
+            if chart_type == "Bar Chart":
+                fig_district = px.bar(
+                    district_summary, 
+                    x='District', 
+                    y='PILT_Due',
+                    title="PILT Due by District",
+                    labels={"PILT_Due": "PILT Amount ($)", "District": "Tax District"},
+                    color='District',
+                    color_discrete_sequence=px.colors.sequential.Blues if chart_theme == "blues" 
+                                        else (px.colors.sequential.Viridis if chart_theme == "viridis"
+                                            else (px.colors.sequential.Plasma if chart_theme == "plasma"
+                                                else (px.colors.sequential.Cividis if chart_theme == "cividis"
+                                                    else (px.colors.qualitative.Set3 if chart_theme == "sunburst"
+                                                        else px.colors.qualitative.Plotly))))
+                )
+                # Customize layout
+                fig_district.update_layout(
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    title_font_size=20,
+                    hoverlabel=dict(bgcolor="white", font_size=16),
+                    xaxis=dict(tickangle=-45)
+                )
+            elif chart_type == "Pie Chart":
+                fig_district = px.pie(
+                    district_summary,
+                    values='PILT_Due',
+                    names='District',
+                    title="PILT Due by District",
+                    color='District',
+                    color_discrete_sequence=px.colors.sequential.Blues if chart_theme == "blues" 
+                                        else (px.colors.sequential.Viridis if chart_theme == "viridis"
+                                            else (px.colors.sequential.Plasma if chart_theme == "plasma"
+                                                else (px.colors.sequential.Cividis if chart_theme == "cividis"
+                                                    else (px.colors.qualitative.Set3 if chart_theme == "sunburst"
+                                                        else px.colors.qualitative.Plotly))))
+                )
+                fig_district.update_traces(textposition='inside', textinfo='percent+label')
+            else:  # Donut Chart
+                fig_district = px.pie(
+                    district_summary,
+                    values='PILT_Due',
+                    names='District',
+                    title="PILT Due by District",
+                    color='District',
+                    hole=0.4,
+                    color_discrete_sequence=px.colors.sequential.Blues if chart_theme == "blues" 
+                                        else (px.colors.sequential.Viridis if chart_theme == "viridis"
+                                            else (px.colors.sequential.Plasma if chart_theme == "plasma"
+                                                else (px.colors.sequential.Cividis if chart_theme == "cividis"
+                                                    else (px.colors.qualitative.Set3 if chart_theme == "sunburst"
+                                                        else px.colors.qualitative.Plotly))))
+                )
+                fig_district.update_traces(textposition='inside', textinfo='percent+label')
+                fig_district.update_layout(
+                    annotations=[dict(text='PILT Due', x=0.5, y=0.5, font_size=20, showarrow=False)]
+                )
+                
             st.plotly_chart(fig_district, use_container_width=True)
             
-            # Assessed Value vs PILT chart
-            st.subheader("Assessed Value vs PILT")
+            # Chart data download option
+            st.markdown("**Export chart data:**")
+            if st.button("Export Chart Data to CSV", key="district_csv"):
+                csv_data = io.StringIO()
+                district_summary.to_csv(csv_data, index=False)
+                csv_data.seek(0)
+                st.download_button(
+                    label="Download CSV",
+                    data=csv_data.getvalue(),
+                    file_name=f"pilt_by_district_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv"
+                )
+            
+            # Assessed Value vs PILT chart with enhancements
+            st.markdown("""
+            <div style="background-color:#f8f9fa; padding:10px; border-radius:5px; margin:25px 0px 15px 0px">
+                <h3 style="color:#0077b6;">Assessed Value vs PILT Relationship</h3>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Add interactive controls
+            show_trendline = st.checkbox("Show Trendline", value=True)
+            
             fig_comparison = px.scatter(
                 district_summary, 
                 x='Assessed_Value', 
@@ -289,39 +406,162 @@ if st.session_state.pilt_data is not None and not st.session_state.pilt_data.emp
                     "Assessed_Value": "Assessed Value ($)", 
                     "PILT_Due": "PILT Amount ($)"
                 },
-                hover_data=['Levy_Rate']
+                hover_data=['Levy_Rate'],
+                trendline="ols" if show_trendline else None,
+                color_discrete_sequence=px.colors.sequential.Blues if chart_theme == "blues" 
+                                    else (px.colors.sequential.Viridis if chart_theme == "viridis"
+                                        else (px.colors.sequential.Plasma if chart_theme == "plasma"
+                                            else (px.colors.sequential.Cividis if chart_theme == "cividis"
+                                                else (px.colors.qualitative.Set3 if chart_theme == "sunburst"
+                                                    else px.colors.qualitative.Plotly))))
             )
+            
+            # Enhance layout
+            fig_comparison.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                title_font_size=20,
+                hoverlabel=dict(bgcolor="white", font_size=16),
+                xaxis=dict(
+                    title_font=dict(size=16),
+                    tickformat="$,.0f"
+                ),
+                yaxis=dict(
+                    title_font=dict(size=16),
+                    tickformat="$,.0f"
+                )
+            )
+            
             st.plotly_chart(fig_comparison, use_container_width=True)
+            
+            # Chart data download option
+            st.markdown("**Export chart data:**")
+            if st.button("Export Chart Data to CSV", key="comparison_csv"):
+                csv_data = io.StringIO()
+                district_summary.to_csv(csv_data, index=False)
+                csv_data.seek(0)
+                st.download_button(
+                    label="Download CSV",
+                    data=csv_data.getvalue(),
+                    file_name=f"pilt_vs_value_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv"
+                )
         
         # Historical trend visualization if data is available
         if st.session_state.historical_data is not None and not st.session_state.historical_data.empty:
-            st.subheader("Historical PILT Trends")
+            st.markdown("""
+            <div style="background-color:#f8f9fa; padding:10px; border-radius:5px; margin:25px 0px 15px 0px">
+                <h3 style="color:#0077b6;">Historical PILT Trends</h3>
+                <p>Year-over-year changes in PILT values</p>
+            </div>
+            """, unsafe_allow_html=True)
             
             # Process historical data
             trend_data = generate_historical_pilt_trend(st.session_state.historical_data)
             
             # Create trend chart
             if 'year' in trend_data.columns and 'estimated_pilt' in trend_data.columns:
+                # Add year-over-year change calculation
+                if len(trend_data) > 1:
+                    trend_data['previous_pilt'] = trend_data['estimated_pilt'].shift(1)
+                    trend_data['yoy_change'] = (trend_data['estimated_pilt'] - trend_data['previous_pilt']) / trend_data['previous_pilt'] * 100
+                    trend_data['yoy_change'] = trend_data['yoy_change'].fillna(0)
+                    
+                    # Display YoY change as a table
+                    st.markdown("#### Year-over-Year Change")
+                    yoy_df = trend_data[['year', 'estimated_pilt', 'yoy_change']].copy()
+                    yoy_df.columns = ['Year', 'PILT Amount ($)', 'YoY Change (%)']
+                    yoy_df['PILT Amount ($)'] = yoy_df['PILT Amount ($)'].map('${:,.2f}'.format)
+                    yoy_df['YoY Change (%)'] = yoy_df['YoY Change (%)'].map('{:+.2f}%'.format)
+                    st.dataframe(yoy_df)
+                
+                # Get chart theme if available, otherwise use default
+                trend_chart_theme = "default"
+                if 'chart_theme' in locals():
+                    trend_chart_theme = chart_theme
+                
+                # Enhanced styling for the trend chart
                 fig_trend = px.line(
                     trend_data,
                     x='year',
                     y='estimated_pilt',
                     title="Year-over-Year PILT Trend",
                     labels={"year": "Year", "estimated_pilt": "Estimated PILT ($)"},
-                    markers=True
+                    markers=True,
+                    color_discrete_sequence=px.colors.sequential.Blues if trend_chart_theme == "blues" 
+                                    else (px.colors.sequential.Viridis if trend_chart_theme == "viridis"
+                                        else (px.colors.sequential.Plasma if trend_chart_theme == "plasma"
+                                            else (px.colors.sequential.Cividis if trend_chart_theme == "cividis"
+                                                else (px.colors.qualitative.Set3 if trend_chart_theme == "sunburst"
+                                                    else px.colors.qualitative.Plotly))))
                 )
+                
+                # Enhance layout
+                fig_trend.update_layout(
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    title_font_size=20,
+                    hoverlabel=dict(bgcolor="white", font_size=16),
+                    xaxis=dict(
+                        title_font=dict(size=16),
+                        tickangle=0
+                    ),
+                    yaxis=dict(
+                        title_font=dict(size=16),
+                        tickformat="$,.0f"
+                    ),
+                    hovermode="x unified"
+                )
+                
+                # Customize line and markers
+                fig_trend.update_traces(
+                    line=dict(width=3),
+                    marker=dict(size=10, line=dict(width=2, color='DarkSlateGrey')),
+                    hovertemplate='<b>Year:</b> %{x}<br><b>PILT:</b> $%{y:,.2f}<extra></extra>'
+                )
+                
                 st.plotly_chart(fig_trend, use_container_width=True)
+                
+                # Chart data download option
+                st.markdown("**Export historical trend data:**")
+                if st.button("Export Trend Data to CSV", key="trend_csv"):
+                    csv_data = io.StringIO()
+                    trend_data.to_csv(csv_data, index=False)
+                    csv_data.seek(0)
+                    st.download_button(
+                        label="Download CSV",
+                        data=csv_data.getvalue(),
+                        file_name=f"pilt_trend_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                    )
             else:
                 st.warning("Historical data does not contain required columns for trend visualization")
 
     with tab4:
-        st.header("What-If Scenario Analysis")
+        st.markdown("""
+        <div style="background-color:#f0f8ff; padding:10px; border-radius:5px; margin-bottom:20px">
+            <h2 style="color:#0077b6; text-align:center">What-If Scenario Analysis</h2>
+            <p style="text-align:center">Simulate different scenarios to see how changes would affect PILT calculations</p>
+        </div>
+        """, unsafe_allow_html=True)
         
         if st.session_state.pilt_data is not None:
-            st.write("""
-            Adjust parameters below to see how they would affect PILT calculations.
-            This allows for scenario planning and impact analysis.
-            """)
+            st.markdown("""
+            <div style="background-color:#e6f2ff; padding:15px; border-radius:5px; margin:10px 0px 20px 0px">
+                <p style="font-size:16px">
+                    Use the controls below to adjust key parameters and see how they would affect PILT calculations.
+                    This tool allows you to:
+                </p>
+                <ul>
+                    <li>Modify levy rates for each district</li>
+                    <li>Adjust assessed values by a percentage</li>
+                    <li>Apply custom deductions to specific districts</li>
+                </ul>
+                <p style="font-style:italic">
+                    Once you've set your parameters, click "Run Scenario Analysis" to calculate the results.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
             
             # Get unique districts for scenario analysis
             districts = st.session_state.pilt_data['District'].unique()
