@@ -7,6 +7,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import io
+import base64
+import tempfile
+import pdfkit
+import csv
 from datetime import datetime
 
 # Import custom modules
@@ -33,13 +37,32 @@ if 'calculated_data' not in st.session_state:
 if 'historical_data' not in st.session_state:
     st.session_state.historical_data = None
 
-# Page title and description
-st.title("Benton County PILT Dashboard")
-st.write("""
-This dashboard calculates and visualizes Payment in Lieu of Taxes (PILT) 
-based on property data from Benton County. Select data source and use 
-the interactive controls to perform analysis.
-""")
+# Page title and description with improved styling
+st.markdown("""
+<div style="background-color:#0077b6; padding:10px; border-radius:10px">
+    <h1 style="color:white; text-align:center">Benton County PILT Dashboard</h1>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div style="background-color:#f8f9fa; padding:15px; border-radius:5px; margin:10px 0px">
+    <p style="font-size:16px">
+        This dashboard calculates and visualizes <b>Payment in Lieu of Taxes (PILT)</b> 
+        based on property data from Benton County. Select your preferred data source and use 
+        the interactive controls to perform analysis.
+    </p>
+    <p>
+        <b>Features:</b>
+        <ul>
+            <li>Load data from SQL Database or Excel files</li>
+            <li>Calculate PILT based on assessed values and levy rates</li>
+            <li>Conduct "what-if" analysis with adjustable parameters</li>
+            <li>View interactive visualizations of PILT data</li>
+            <li>Export reports in multiple formats</li>
+        </ul>
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
 # Sidebar for data source selection and controls
 st.sidebar.title("Data Source")
@@ -141,8 +164,10 @@ if st.session_state.pilt_data is not None and not st.session_state.pilt_data.emp
             st.metric("Total PILT Due", f"${total_pilt:,.2f}")
             
             # Export options
-            export_format = st.selectbox("Export Format", ["Excel"])
+            export_format = st.selectbox("Export Format", ["Excel", "CSV", "PDF"])
             if st.button("Export PILT Report"):
+                now = datetime.now().strftime("%Y%m%d_%H%M%S")
+                
                 if export_format == "Excel":
                     output = io.BytesIO()
                     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
@@ -154,7 +179,6 @@ if st.session_state.pilt_data is not None and not st.session_state.pilt_data.emp
                         )
                     
                     # Download button
-                    now = datetime.now().strftime("%Y%m%d_%H%M%S")
                     output.seek(0)
                     st.download_button(
                         label="Download Excel Report",
@@ -162,6 +186,77 @@ if st.session_state.pilt_data is not None and not st.session_state.pilt_data.emp
                         file_name=f"pilt_report_{now}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
+                
+                elif export_format == "CSV":
+                    # For CSV, we'll create two separate files - one for detail and one for summary
+                    csv_detail = io.StringIO()
+                    st.session_state.calculated_data.to_csv(csv_detail, index=False)
+                    
+                    st.download_button(
+                        label="Download CSV Detail Report",
+                        data=csv_detail.getvalue(),
+                        file_name=f"pilt_detail_{now}.csv",
+                        mime="text/csv"
+                    )
+                    
+                    csv_summary = io.StringIO()
+                    district_summary.to_csv(csv_summary, index=False)
+                    
+                    st.download_button(
+                        label="Download CSV Summary Report",
+                        data=csv_summary.getvalue(),
+                        file_name=f"pilt_summary_{now}.csv",
+                        mime="text/csv"
+                    )
+                
+                elif export_format == "PDF":
+                    try:
+                        # Create HTML content for PDF
+                        html_content = f"""
+                        <html>
+                        <head>
+                            <title>PILT Report - {now}</title>
+                            <style>
+                                body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                                h1 {{ color: #0077b6; text-align: center; }}
+                                h2 {{ color: #0077b6; margin-top: 20px; }}
+                                table {{ border-collapse: collapse; width: 100%; margin-top: 10px; }}
+                                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                                th {{ background-color: #f2f2f2; }}
+                                .total {{ font-weight: bold; }}
+                            </style>
+                        </head>
+                        <body>
+                            <h1>Benton County PILT Report</h1>
+                            <p>Generated on: {datetime.now().strftime("%B %d, %Y at %I:%M %p")}</p>
+                            
+                            <h2>PILT Summary by District</h2>
+                            {district_summary.to_html(index=False)}
+                            
+                            <p class="total">Total PILT Due: ${total_pilt:,.2f}</p>
+                            
+                            <h2>PILT Detail</h2>
+                            {st.session_state.calculated_data.to_html(index=False)}
+                        </body>
+                        </html>
+                        """
+                        
+                        # Create PDF
+                        with tempfile.NamedTemporaryFile(suffix='.html') as f:
+                            f.write(html_content.encode('utf-8'))
+                            f.flush()
+                            
+                            pdf_data = pdfkit.from_file(f.name, False)
+                            
+                            st.download_button(
+                                label="Download PDF Report",
+                                data=pdf_data,
+                                file_name=f"pilt_report_{now}.pdf",
+                                mime="application/pdf"
+                            )
+                    except Exception as e:
+                        st.error(f"Error generating PDF: {str(e)}")
+                        st.info("If PDF generation fails, please try Excel or CSV format instead.")
     
     with tab3:
         st.header("PILT Visualizations")
@@ -367,7 +462,7 @@ else:
     2. **PILT Calculations**: Automatically calculate PILT based on assessed values, levy rates and deductions
     3. **Interactive Visualizations**: View district comparisons and historical trends
     4. **What-If Analysis**: Simulate scenarios by adjusting levy rates, assessed values, and deductions
-    5. **Export Reports**: Download detailed PILT reports in Excel format
+    5. **Export Reports**: Download detailed PILT reports in Excel, CSV, or PDF formats
     
     Get started by selecting a data source in the sidebar.
     """)
