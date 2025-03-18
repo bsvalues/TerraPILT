@@ -84,7 +84,7 @@ st.sidebar.markdown("""
 # Data source selection with better styling
 st.sidebar.markdown("### Data Source")
 st.sidebar.markdown("Select the source of property data for PILT calculations:")
-data_source = st.sidebar.radio("", ("SQL Database", "Excel File"))
+data_source = st.sidebar.radio("Select data source", ("SQL Database", "Excel File"))
 
 # Load data based on selected source
 try:
