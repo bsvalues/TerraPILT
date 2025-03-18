@@ -1,0 +1,100 @@
+Here are the clearly defined prompts tailored specifically for the Replit AI Agent, ensuring effective integration and execution of your project step-by-step:
+
+### **Prompt 1: Project Initialization & Dependencies**
+
+> **Task:** Set up a Python-based Replit project configured specifically for data analysis and visualization with Streamlit.
+> 
+> **Instructions:**
+> - Create a new Repl using the "Python (with Streamlit)" template.
+> - Include a `requirements.txt` file containing these dependencies:
+>   ```
+>   pandas
+>   sqlalchemy
+>   streamlit
+>   plotly
+>   ```
+> - Ensure Replit correctly installs these dependencies upon project execution.
+
+---
+
+### **Prompt 2: Database Module Setup**
+
+> **Task:** Implement a `database.py` module for SQL integration using SQLAlchemy.
+>
+> **Instructions:**
+> - Create `database.py`.
+> - Write code to establish a secure connection to a PostgreSQL database using credentials stored as Replit secrets or environment variables.
+> - Implement a function `load_data(query: str)` to execute SQL queries and return results as a pandas DataFrame.
+> - Include exception handling for database connection errors and query execution.
+
+---
+
+### **Prompt 3: Calculation Engine Development**
+
+> **Task:** Create a `calculations.py` module for computing PILT (Payment in Lieu of Taxes).
+>
+> **Instructions:**
+> - Define a function named `calculate_pilt(df: pd.DataFrame, deductions: dict = None)` that computes PILT based on provided data.
+> - Include logic to handle optional deductions applied by district.
+> - Ensure calculated columns (`Base_PILT`, `Deduction`, `PILT_Due`) are clearly documented within the function.
+
+---
+
+### **Prompt 4: Interactive Streamlit Dashboard Development**
+
+> **Task:** Develop a user-interactive dashboard in `main.py` using Streamlit to visualize PILT data.
+>
+> **Instructions:**
+> - Initialize the Streamlit dashboard with a clear layout (`st.set_page_config`) and descriptive title.
+> - Create a sidebar interface allowing the user to select the data source (SQL Database or Excel upload).
+> - Implement file upload functionality for Excel files, reading data from the specified sheet ("2023").
+> - For SQL selection, execute a predefined complex query provided in the instructions using the previously defined `load_data()` function from `database.py`.
+> - Display loaded data clearly, and provide interactive sliders for "what-if" scenario analysis (e.g., adjusting levy rates).
+> - Integrate PILT calculations using the previously defined `calculate_pilt()` function from `calculations.py`.
+> - Add visualizations (such as a Plotly line chart) for year-over-year PILT trends.
+> - Implement data export functionality, allowing users to download reports as Excel files directly from the Streamlit interface.
+
+---
+
+### **Prompt 5: Intelligent Error Handling & Debugging**
+
+> **Task:** Implement intelligent error handling for the Streamlit dashboard.
+>
+> **Instructions:**
+> - Include detailed error messages using Streamlit's built-in messaging (`st.error`, `st.warning`) for issues like SQL connection failures or missing data.
+> - Ensure graceful degradation of app features if data loading fails, prompting users clearly about next steps or actions required.
+
+---
+
+### **Prompt 6: User Feedback & Iteration**
+
+> **Task:** Enable easy sharing of the Streamlit app for feedback and iterative development.
+>
+> **Instructions:**
+> - Ensure the app runs successfully upon clicking Replit's "Run" button, generating a publicly accessible URL.
+> - Provide clear instructions within the app for users to submit feedback regarding data accuracy, UI/UX improvements, and additional features.
+> - Based on feedback, iteratively adjust the modules (`calculations.py`, `database.py`, and `main.py`).
+
+---
+
+### **Prompt 7: Security & Environment Configuration**
+
+> **Task:** Securely configure database credentials and environment variables.
+>
+> **Instructions:**
+> - Store sensitive credentials securely using Replit secrets.
+> - Update the `database.py` connection string to securely reference these environment variables.
+
+---
+
+### **Prompt 8: Documentation and Finalization**
+
+> **Task:** Create comprehensive project documentation within the Replit environment.
+>
+> **Instructions:**
+> - Provide clear inline comments and a README file documenting setup steps, module functions, expected user interactions, and troubleshooting steps.
+> - Document usage scenarios, including local testing, data uploads, and adjustments of levy rates for scenario analysis.
+
+---
+
+These prompts are structured specifically to guide Replit's AI Agent through each critical stage of your PILT dashboard development, ensuring clarity, efficient implementation, and maintainability.

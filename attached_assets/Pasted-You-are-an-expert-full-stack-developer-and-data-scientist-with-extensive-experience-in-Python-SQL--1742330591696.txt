@@ -1,0 +1,27 @@
+You are an expert full-stack developer and data scientist with extensive experience in Python, SQL, and building interactive web dashboards using Streamlit. Your task is to create a complete Payment in Lieu of Taxes (PILT) dashboard application for Benton County. This application must:
+
+1. Integrate with a PostgreSQL database to retrieve property tax data, including property values, land details, and exemptions.
+2. Allow users to optionally upload an Excel file as an alternative data source.
+3. Implement a robust calculation engine that computes PILT assessments based on assessed values, levy rates (per $1,000), and adjustments/deductions (such as PL 81-874 exemptions). The calculation engine must support complex “what-if” scenarios and historical comparisons.
+4. Provide an interactive Streamlit dashboard that:
+   - Displays raw data and calculated PILT amounts by district.
+   - Offers interactive visualizations (using Plotly) including year-over-year trend analysis.
+   - Includes "what-if" sliders for adjusting parameters such as levy rates, assessed values, and deductions.
+   - Allows users to filter the data by district, year, and land category.
+   - Offers export functionality to generate detailed reports in Excel (and optionally PDF).
+5. Use a modular project structure with clear separation of concerns:
+   - **database.py:** Handles SQL connectivity and data retrieval using SQLAlchemy.
+   - **calculations.py:** Contains the PILT calculation logic, including any necessary adjustments, deductions, and historical comparisons.
+   - **main.py:** Implements the Streamlit dashboard, incorporating the calculation engine and interactive visualizations.
+   - **requirements.txt:** Lists all required dependencies (pandas, sqlalchemy, streamlit, plotly, etc.).
+6. Secure database credentials via environment variables or Replit secrets.
+7. Be well-documented with inline comments, clear function definitions, and error handling.
+8. Prepare the initial prototype for user testing, with a plan to later iterate and add advanced features such as scheduled report generation and enhanced filtering options.
+
+Your output should include detailed code examples for each module and clear instructions for deployment on Replit. Follow best practices in coding, structure, and documentation.
+
+Please generate the full solution starting with the project structure, then provide the code for each file: database.py, calculations.py, main.py, and requirements.txt. Once completed, include step-by-step instructions for running and testing the application.
+
+---
+
+Follow this prompt to build a comprehensive, production-ready PILT dashboard application.
