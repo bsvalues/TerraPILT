@@ -54,6 +54,46 @@
         tr:nth-child(even) {
             background-color: #f9f9f9;
         }
+        
+        /* Preview table styles */
+        #previewTable {
+            width: 100%;
+            margin-top: 10px;
+            border-collapse: collapse;
+        }
+        
+        #previewTable th {
+            background-color: #17a2b8;
+            color: white;
+            font-size: 0.9em;
+            padding: 6px 8px;
+        }
+        
+        #previewTable td {
+            padding: 4px 8px;
+            font-size: 0.9em;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        #previewTable tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        .preview-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .preview-info {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #6c757d;
+            font-style: italic;
+        }
         .metric {
             background-color: #e6f2ff;
             padding: 15px;
@@ -196,13 +236,13 @@
                 </div>
                 <div id="filePreview" style="display: none; margin-top: 15px;">
                     <h4>File Preview</h4>
-                    <div class="preview-container" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background-color: #f8f9fa;">
-                        <table id="previewTable" style="width: 100%; border-collapse: collapse;">
+                    <div class="preview-container">
+                        <table id="previewTable">
                             <thead id="previewTableHead"></thead>
                             <tbody id="previewTableBody"></tbody>
                         </table>
                     </div>
-                    <div class="preview-info" style="margin-top: 5px; font-size: 0.9em; color: #6c757d;">
+                    <div class="preview-info">
                         Showing first 5 rows of data. <span id="previewDetails"></span>
                     </div>
                 </div>
