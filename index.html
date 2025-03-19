@@ -190,7 +190,22 @@
                     <option value="">-- Select a file --</option>
                     <!-- Will be populated by JavaScript -->
                 </select>
-                <button id="loadSelectedBtn" style="margin-top: 5px; width: auto;">Load Selected File</button>
+                <div class="button-group" style="margin-top: 10px; display: flex; gap: 10px;">
+                    <button id="previewBtn" style="background-color: #17a2b8; width: auto;">Preview</button>
+                    <button id="loadSelectedBtn" style="width: auto;">Load Selected File</button>
+                </div>
+                <div id="filePreview" style="display: none; margin-top: 15px;">
+                    <h4>File Preview</h4>
+                    <div class="preview-container" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background-color: #f8f9fa;">
+                        <table id="previewTable" style="width: 100%; border-collapse: collapse;">
+                            <thead id="previewTableHead"></thead>
+                            <tbody id="previewTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="preview-info" style="margin-top: 5px; font-size: 0.9em; color: #6c757d;">
+                        Showing first 5 rows of data. <span id="previewDetails"></span>
+                    </div>
+                </div>
             </div>
             
             <div class="form-group">
@@ -785,6 +800,97 @@
                         console.error('Error loading files:', error);
                     });
             }
+            
+            // Handle file preview button
+            document.getElementById('previewBtn').addEventListener('click', function() {
+                const filePreview = document.getElementById('filePreview');
+                const filePath = document.getElementById('selectFile').value;
+                
+                if (!filePath) {
+                    alert('Please select a file to preview');
+                    return;
+                }
+                
+                filePreview.style.display = 'block';
+                const previewTableHead = document.getElementById('previewTableHead');
+                const previewTableBody = document.getElementById('previewTableBody');
+                const previewDetails = document.getElementById('previewDetails');
+                
+                // Clear previous preview
+                previewTableHead.innerHTML = '';
+                previewTableBody.innerHTML = '';
+                previewDetails.textContent = 'Loading preview...';
+                
+                // Fetch and preview the file
+                fetch(`/read_excel?file=${encodeURIComponent(filePath)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Process the hex data with SheetJS
+                            const hex = data.data;
+                            const array = new Uint8Array(hex.length / 2);
+                            for (let i = 0; i < hex.length; i += 2) {
+                                array[i / 2] = parseInt(hex.substr(i, 2), 16);
+                            }
+                            
+                            try {
+                                const wb = XLSX.read(array, { type: 'array' });
+                                
+                                // Get the first sheet
+                                const sheetName = wb.SheetNames[0];
+                                const sheet = wb.Sheets[sheetName];
+                                
+                                // Convert to JSON, but limit to first few rows
+                                const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                                
+                                if (jsonData.length > 0) {
+                                    // Create table header
+                                    const headerRow = document.createElement('tr');
+                                    if (jsonData[0].length > 0) {
+                                        jsonData[0].forEach(header => {
+                                            const th = document.createElement('th');
+                                            th.textContent = header;
+                                            headerRow.appendChild(th);
+                                        });
+                                        previewTableHead.appendChild(headerRow);
+                                    }
+                                    
+                                    // Create table rows (limited to first 5 data rows)
+                                    const rowLimit = Math.min(5, jsonData.length - 1);
+                                    for (let i = 1; i <= rowLimit; i++) {
+                                        if (jsonData[i]) {
+                                            const row = document.createElement('tr');
+                                            jsonData[i].forEach(cell => {
+                                                const td = document.createElement('td');
+                                                td.textContent = cell;
+                                                row.appendChild(td);
+                                            });
+                                            previewTableBody.appendChild(row);
+                                        }
+                                    }
+                                    
+                                    previewDetails.textContent = `Sheet: ${sheetName}, Total rows: ${jsonData.length - 1}`;
+                                } else {
+                                    previewTableBody.innerHTML = '<tr><td colspan="5">No data found in the file.</td></tr>';
+                                    previewDetails.textContent = '';
+                                }
+                            } catch (e) {
+                                previewTableBody.innerHTML = `<tr><td colspan="5">Error previewing file: ${e.message}</td></tr>`;
+                                previewDetails.textContent = '';
+                                console.error('Error previewing Excel file:', e);
+                            }
+                        } else {
+                            previewTableBody.innerHTML = `<tr><td colspan="5">Error: ${data.message}</td></tr>`;
+                            previewDetails.textContent = '';
+                            console.error('Error fetching file for preview:', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        previewTableBody.innerHTML = `<tr><td colspan="5">Error fetching file: ${error.message}</td></tr>`;
+                        previewDetails.textContent = '';
+                        console.error('Error fetching file for preview:', error);
+                    });
+            });
             
             // Load a selected Excel file
             document.getElementById('loadSelectedBtn').addEventListener('click', function() {
