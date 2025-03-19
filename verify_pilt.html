@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PILT Calculation Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            padding: 0;
+        }
+        h1, h2 {
+            color: #0077b6;
+        }
+        .verification {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .result {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .calculations {
+            font-family: monospace;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>PILT Calculation Verification</h1>
+    
+    <div class="verification">
+        <h2>Test Case 1: Basic PILT Calculation</h2>
+        <p>Testing a district with $10,000,000 assessed value, 0.0025 levy rate, and $0 deduction.</p>
+        
+        <div class="calculations">
+            <p>Calculation:</p>
+            <p>Base PILT = Assessed Value × Levy Rate</p>
+            <p>Base PILT = $10,000,000 × 0.0025 = $25,000</p>
+            <p>PILT Due = Base PILT - Deduction</p>
+            <p>PILT Due = $25,000 - $0 = $25,000</p>
+        </div>
+        
+        <div id="test1" class="result"></div>
+    </div>
+    
+    <div class="verification">
+        <h2>Test Case 2: PILT with Deduction</h2>
+        <p>Testing a district with $5,000,000 assessed value, 0.0025 levy rate, and $2,500 deduction.</p>
+        
+        <div class="calculations">
+            <p>Calculation:</p>
+            <p>Base PILT = Assessed Value × Levy Rate</p>
+            <p>Base PILT = $5,000,000 × 0.0025 = $12,500</p>
+            <p>PILT Due = Base PILT - Deduction</p>
+            <p>PILT Due = $12,500 - $2,500 = $10,000</p>
+        </div>
+        
+        <div id="test2" class="result"></div>
+    </div>
+    
+    <div class="verification">
+        <h2>Test Case 3: Aggregation</h2>
+        <p>Testing the aggregation of multiple districts.</p>
+        
+        <div class="calculations">
+            <p>Total Assessed Value = $10,000,000 + $5,000,000 = $15,000,000</p>
+            <p>Total Base PILT = $25,000 + $12,500 = $37,500</p>
+            <p>Total Deduction = $0 + $2,500 = $2,500</p>
+            <p>Total PILT Due = $25,000 + $10,000 = $35,000</p>
+        </div>
+        
+        <div id="test3" class="result"></div>
+    </div>
+    
+    <div class="verification">
+        <h2>Test Case 4: What-If Analysis</h2>
+        <p>Testing the what-if analysis with adjusted values.</p>
+        
+        <div class="calculations">
+            <p>District 1: Change levy rate from 0.0025 to 0.003</p>
+            <p>District 2: Increase assessed value by 10% and change deduction to $5,000</p>
+        </div>
+        
+        <div id="test4" class="result"></div>
+    </div>
+    
+    <h2>Test Data Summary</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>District</th>
+                <th>Assessed Value</th>
+                <th>Levy Rate</th>
+                <th>Deduction</th>
+                <th>Base PILT</th>
+                <th>PILT Due</th>
+            </tr>
+        </thead>
+        <tbody id="dataSummary"></tbody>
+    </table>
+    
+    <script src="simple_pilt_calculator.js"></script>
+    <script>
+        // Test data
+        const testData = [
+            { 
+                district: "Test District 1", 
+                assessedValue: 10000000, 
+                levyRate: 0.0025, 
+                deduction: 0 
+            },
+            { 
+                district: "Test District 2", 
+                assessedValue: 5000000, 
+                levyRate: 0.0025, 
+                deduction: 2500 
+            }
+        ];
+        
+        // Function to format currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', { 
+                style: 'currency', 
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+        }
+        
+        // Test 1: Basic PILT Calculation
+        function runTest1() {
+            try {
+                const district = testData[0];
+                const result = window.calculatePILT([district])[0];
+                
+                const expectedBasePILT = 25000;
+                const expectedPILTDue = 25000;
+                
+                const basePILTMatch = result.basePILT === expectedBasePILT;
+                const piltDueMatch = result.piltDue === expectedPILTDue;
+                
+                const testResult = document.getElementById('test1');
+                
+                if (basePILTMatch && piltDueMatch) {
+                    testResult.innerHTML = '<div class="success">✓ Test Passed</div>' +
+                        '<p>Expected Base PILT: ' + formatCurrency(expectedBasePILT) + ', Actual: ' + formatCurrency(result.basePILT) + '</p>' +
+                        '<p>Expected PILT Due: ' + formatCurrency(expectedPILTDue) + ', Actual: ' + formatCurrency(result.piltDue) + '</p>';
+                } else {
+                    testResult.innerHTML = '<div class="error">✗ Test Failed</div>' +
+                        '<p>Expected Base PILT: ' + formatCurrency(expectedBasePILT) + ', Actual: ' + formatCurrency(result.basePILT) + '</p>' +
+                        '<p>Expected PILT Due: ' + formatCurrency(expectedPILTDue) + ', Actual: ' + formatCurrency(result.piltDue) + '</p>';
+                }
+            } catch (e) {
+                document.getElementById('test1').innerHTML = '<div class="error">✗ Test Error: ' + e.message + '</div>';
+            }
+        }
+        
+        // Test 2: PILT with Deduction
+        function runTest2() {
+            try {
+                const district = testData[1];
+                const result = window.calculatePILT([district])[0];
+                
+                const expectedBasePILT = 12500;
+                const expectedPILTDue = 10000;
+                
+                const basePILTMatch = result.basePILT === expectedBasePILT;
+                const piltDueMatch = result.piltDue === expectedPILTDue;
+                
+                const testResult = document.getElementById('test2');
+                
+                if (basePILTMatch && piltDueMatch) {
+                    testResult.innerHTML = '<div class="success">✓ Test Passed</div>' +
+                        '<p>Expected Base PILT: ' + formatCurrency(expectedBasePILT) + ', Actual: ' + formatCurrency(result.basePILT) + '</p>' +
+                        '<p>Expected PILT Due: ' + formatCurrency(expectedPILTDue) + ', Actual: ' + formatCurrency(result.piltDue) + '</p>';
+                } else {
+                    testResult.innerHTML = '<div class="error">✗ Test Failed</div>' +
+                        '<p>Expected Base PILT: ' + formatCurrency(expectedBasePILT) + ', Actual: ' + formatCurrency(result.basePILT) + '</p>' +
+                        '<p>Expected PILT Due: ' + formatCurrency(expectedPILTDue) + ', Actual: ' + formatCurrency(result.piltDue) + '</p>';
+                }
+            } catch (e) {
+                document.getElementById('test2').innerHTML = '<div class="error">✗ Test Error: ' + e.message + '</div>';
+            }
+        }
+        
+        // Test 3: Aggregation
+        function runTest3() {
+            try {
+                const results = window.calculatePILT(testData);
+                const totals = window.aggregatePILT(results);
+                
+                const expectedAssessedValue = 15000000;
+                const expectedBasePILT = 37500;
+                const expectedDeduction = 2500;
+                const expectedPILTDue = 35000;
+                
+                const assessedValueMatch = totals.assessedValue === expectedAssessedValue;
+                const basePILTMatch = totals.basePILT === expectedBasePILT;
+                const deductionMatch = totals.deduction === expectedDeduction;
+                const piltDueMatch = totals.piltDue === expectedPILTDue;
+                
+                const testResult = document.getElementById('test3');
+                
+                if (assessedValueMatch && basePILTMatch && deductionMatch && piltDueMatch) {
+                    testResult.innerHTML = '<div class="success">✓ Test Passed</div>' +
+                        '<p>Expected Total Assessed Value: ' + formatCurrency(expectedAssessedValue) + ', Actual: ' + formatCurrency(totals.assessedValue) + '</p>' +
+                        '<p>Expected Total Base PILT: ' + formatCurrency(expectedBasePILT) + ', Actual: ' + formatCurrency(totals.basePILT) + '</p>' +
+                        '<p>Expected Total Deduction: ' + formatCurrency(expectedDeduction) + ', Actual: ' + formatCurrency(totals.deduction) + '</p>' +
+                        '<p>Expected Total PILT Due: ' + formatCurrency(expectedPILTDue) + ', Actual: ' + formatCurrency(totals.piltDue) + '</p>';
+                } else {
+                    testResult.innerHTML = '<div class="error">✗ Test Failed</div>' +
+                        '<p>Expected Total Assessed Value: ' + formatCurrency(expectedAssessedValue) + ', Actual: ' + formatCurrency(totals.assessedValue) + '</p>' +
+                        '<p>Expected Total Base PILT: ' + formatCurrency(expectedBasePILT) + ', Actual: ' + formatCurrency(totals.basePILT) + '</p>' +
+                        '<p>Expected Total Deduction: ' + formatCurrency(expectedDeduction) + ', Actual: ' + formatCurrency(totals.deduction) + '</p>' +
+                        '<p>Expected Total PILT Due: ' + formatCurrency(expectedPILTDue) + ', Actual: ' + formatCurrency(totals.piltDue) + '</p>';
+                }
+            } catch (e) {
+                document.getElementById('test3').innerHTML = '<div class="error">✗ Test Error: ' + e.message + '</div>';
+            }
+        }
+        
+        // Test 4: What-If Analysis
+        function runTest4() {
+            try {
+                const newRates = { "Test District 1": 0.003 };
+                const valueAdjustments = { "Test District 2": 1.1 }; // 10% increase
+                const deductionAdjustments = { "Test District 2": 5000 };
+                
+                const whatIfResults = window.whatIfAnalysis(testData, {
+                    newRates,
+                    valueAdjustments,
+                    deductionAdjustments
+                });
+                
+                // Expected results after adjustments
+                const expectedWhatIf = [
+                    {
+                        district: "Test District 1",
+                        assessedValue: 10000000,
+                        levyRate: 0.003,
+                        deduction: 0
+                    },
+                    {
+                        district: "Test District 2",
+                        assessedValue: 5500000, // 5000000 * 1.1
+                        levyRate: 0.0025,
+                        deduction: 5000
+                    }
+                ];
+                
+                let allMatch = true;
+                let resultHTML = '<div class="success">✓ Test Passed</div>';
+                
+                for (let i = 0; i < whatIfResults.length; i++) {
+                    const result = whatIfResults[i];
+                    const expected = expectedWhatIf[i];
+                    
+                    const levyRateMatch = result.levyRate === expected.levyRate;
+                    const assessedValueMatch = result.assessedValue === expected.assessedValue;
+                    const deductionMatch = result.deduction === expected.deduction;
+                    
+                    if (!levyRateMatch || !assessedValueMatch || !deductionMatch) {
+                        allMatch = false;
+                        resultHTML = '<div class="error">✗ Test Failed</div>';
+                    }
+                    
+                    resultHTML += '<p>District: ' + result.district + '</p>' +
+                        '<p>Levy Rate - Expected: ' + expected.levyRate + ', Actual: ' + result.levyRate + ', Match: ' + (levyRateMatch ? '✓' : '✗') + '</p>' +
+                        '<p>Assessed Value - Expected: ' + formatCurrency(expected.assessedValue) + ', Actual: ' + formatCurrency(result.assessedValue) + ', Match: ' + (assessedValueMatch ? '✓' : '✗') + '</p>' +
+                        '<p>Deduction - Expected: ' + formatCurrency(expected.deduction) + ', Actual: ' + formatCurrency(result.deduction) + ', Match: ' + (deductionMatch ? '✓' : '✗') + '</p>';
+                }
+                
+                document.getElementById('test4').innerHTML = resultHTML;
+            } catch (e) {
+                document.getElementById('test4').innerHTML = '<div class="error">✗ Test Error: ' + e.message + '</div>';
+            }
+        }
+        
+        // Generate data summary table
+        function generateDataSummary() {
+            const piltResults = window.calculatePILT(testData);
+            const tableBody = document.getElementById('dataSummary');
+            
+            piltResults.forEach(result => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${result.district}</td>
+                    <td>${formatCurrency(result.assessedValue)}</td>
+                    <td>${result.levyRate}</td>
+                    <td>${formatCurrency(result.deduction)}</td>
+                    <td>${formatCurrency(result.basePILT)}</td>
+                    <td>${formatCurrency(result.piltDue)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // Add totals row
+            const totals = window.aggregatePILT(piltResults);
+            const totalsRow = document.createElement('tr');
+            totalsRow.style.fontWeight = 'bold';
+            totalsRow.innerHTML = `
+                <td>TOTALS</td>
+                <td>${formatCurrency(totals.assessedValue)}</td>
+                <td>-</td>
+                <td>${formatCurrency(totals.deduction)}</td>
+                <td>${formatCurrency(totals.basePILT)}</td>
+                <td>${formatCurrency(totals.piltDue)}</td>
+            `;
+            tableBody.appendChild(totalsRow);
+        }
+        
+        // Run all tests when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                runTest1();
+                runTest2();
+                runTest3();
+                runTest4();
+                generateDataSummary();
+            } catch (e) {
+                console.error('Error running tests:', e);
+                document.body.innerHTML += '<div class="error">Fatal Error: ' + e.message + '</div>';
+            }
+        });
+    </script>
+</body>
+</html>
