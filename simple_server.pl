@@ -28,8 +28,16 @@ my %CONTENT_TYPES = (
     'gif'  => 'image/gif',
     'svg'  => 'image/svg+xml',
     'ico'  => 'image/x-icon',
+    'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'xls'  => 'application/vnd.ms-excel',
 );
 
+# Make sure the uploads directory exists
+unless (-d 'uploads') {
+    mkdir 'uploads' or warn "Could not create directory 'uploads': $!";
+}
+
+# Main server loop
 while (my $client = $server->accept()) {
     my $request = '';
     my $path = '';
@@ -47,6 +55,32 @@ while (my $client = $server->accept()) {
     
     # Default to index.html if no path specified
     $path = 'index.html' if $path eq '';
+    
+    # Special handling for /list_files
+    if ($path eq 'list_files') {
+        my $asset_file = 'attached_assets/PILT Tables Wookbook_2025.xlsx';
+        my $json = '{
+            "success": true,
+            "files": [
+                {
+                    "filename": "PILT Tables Wookbook_2025.xlsx",
+                    "path": "' . $asset_file . '",
+                    "source": "asset"
+                }
+            ]
+        }';
+        
+        print $client "HTTP/1.1 200 OK\r\n";
+        print $client "Content-Type: application/json\r\n";
+        print $client "Content-Length: " . length($json) . "\r\n";
+        print $client "Connection: close\r\n";
+        print $client "Access-Control-Allow-Origin: *\r\n";
+        print $client "\r\n";
+        print $client $json;
+        
+        close $client;
+        next;
+    }
     
     my $content;
     my $content_type = 'text/plain';
@@ -81,6 +115,7 @@ while (my $client = $server->accept()) {
     print $client "Content-Type: $content_type\r\n";
     print $client "Content-Length: " . length($content) . "\r\n";
     print $client "Connection: close\r\n";
+    print $client "Access-Control-Allow-Origin: *\r\n";
     print $client "\r\n";
     print $client $content;
     

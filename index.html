@@ -180,17 +180,25 @@
         </div>
         
         <div class="card">
-            <h2>Upload PILT Data</h2>
-            <p>Upload an Excel file containing PILT data to replace the sample data.</p>
+            <h2>PILT Data Source</h2>
+            <p>Choose from available Excel files or upload a new one.</p>
             <p>The Excel file should have columns for: "District", "Assessed_Value", "Levy_Rate", and "Deduction" (optional).</p>
             
             <div class="form-group">
-                <label for="fileInput">Choose an Excel file:</label>
-                <input type="file" id="fileInput" accept=".xlsx, .xls" />
+                <label for="selectFile">Select existing file:</label>
+                <select id="selectFile">
+                    <option value="">-- Select a file --</option>
+                    <!-- Will be populated by JavaScript -->
+                </select>
+                <button id="loadSelectedBtn" style="margin-top: 5px; width: auto;">Load Selected File</button>
             </div>
             
-            <div class="actions">
-                <button id="uploadBtn">Upload Data</button>
+            <div class="form-group">
+                <label for="fileInput">Or upload a new Excel file:</label>
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <input type="file" id="fileInput" name="file" accept=".xlsx, .xls" />
+                    <button type="submit" id="uploadBtn" style="width: auto; margin-top: 5px;">Upload New File</button>
+                </form>
             </div>
             
             <div id="uploadStatus" class="note" style="display: none;"></div>
@@ -748,6 +756,218 @@
                 // Save the PDF
                 doc.save('PILT_Dashboard_Report.pdf');
             });
+            
+            // File upload and processing functionality
+            // List available Excel files
+            function loadAvailableFiles() {
+                fetch('/list_files')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const selectFile = document.getElementById('selectFile');
+                            // Clear existing options except the first one
+                            while (selectFile.options.length > 1) {
+                                selectFile.remove(1);
+                            }
+                            
+                            // Add options for each file
+                            data.files.forEach(file => {
+                                const option = document.createElement('option');
+                                option.value = file.path;
+                                option.textContent = `${file.filename} (${file.source})`;
+                                selectFile.appendChild(option);
+                            });
+                        } else {
+                            console.error('Error loading files:', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading files:', error);
+                    });
+            }
+            
+            // Load a selected Excel file
+            document.getElementById('loadSelectedBtn').addEventListener('click', function() {
+                const filePath = document.getElementById('selectFile').value;
+                if (!filePath) {
+                    alert('Please select a file first');
+                    return;
+                }
+                
+                const statusDiv = document.getElementById('uploadStatus');
+                statusDiv.style.display = 'block';
+                statusDiv.textContent = 'Loading file...';
+                
+                fetch(`/read_excel?file=${encodeURIComponent(filePath)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Process the base64 data with SheetJS
+                            const base64 = data.data;
+                            const binary = atob(base64);
+                            const array = new Uint8Array(binary.length);
+                            for (let i = 0; i < binary.length; i++) {
+                                array[i] = binary.charCodeAt(i);
+                            }
+                            
+                            try {
+                                const wb = XLSX.read(array, { type: 'array' });
+                                processExcelWorkbook(wb, data.filename);
+                                statusDiv.innerHTML = `<strong>Success!</strong> File "${data.filename}" loaded successfully.`;
+                                statusDiv.style.backgroundColor = '#d4edda';
+                                statusDiv.style.borderColor = '#c3e6cb';
+                                statusDiv.style.color = '#155724';
+                            } catch (e) {
+                                statusDiv.innerHTML = `<strong>Error!</strong> Failed to process Excel file: ${e.message}`;
+                                statusDiv.style.backgroundColor = '#f8d7da';
+                                statusDiv.style.borderColor = '#f5c6cb';
+                                statusDiv.style.color = '#721c24';
+                                console.error('Error processing Excel file:', e);
+                            }
+                        } else {
+                            statusDiv.innerHTML = `<strong>Error!</strong> ${data.message}`;
+                            statusDiv.style.backgroundColor = '#f8d7da';
+                            statusDiv.style.borderColor = '#f5c6cb';
+                            statusDiv.style.color = '#721c24';
+                            console.error('Error loading file:', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        statusDiv.innerHTML = `<strong>Error!</strong> ${error.message}`;
+                        statusDiv.style.backgroundColor = '#f8d7da';
+                        statusDiv.style.borderColor = '#f5c6cb';
+                        statusDiv.style.color = '#721c24';
+                        console.error('Error loading file:', error);
+                    });
+            });
+            
+            // Handle file upload via form submission
+            document.getElementById('uploadForm').addEventListener('submit', function(e) {
+                e.preventDefault(); // Prevent the default form submission
+                
+                const fileInput = document.getElementById('fileInput');
+                if (!fileInput.files.length) {
+                    alert('Please select a file to upload');
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const statusDiv = document.getElementById('uploadStatus');
+                statusDiv.style.display = 'block';
+                statusDiv.textContent = 'Uploading file...';
+                
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        statusDiv.innerHTML = `<strong>Success!</strong> File "${data.filename}" uploaded successfully.`;
+                        statusDiv.style.backgroundColor = '#d4edda';
+                        statusDiv.style.borderColor = '#c3e6cb';
+                        statusDiv.style.color = '#155724';
+                        
+                        // Reload the file list
+                        loadAvailableFiles();
+                        
+                        // Clear the file input
+                        fileInput.value = '';
+                        
+                        // Process the uploaded file
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            try {
+                                const wb = XLSX.read(e.target.result, { type: 'binary' });
+                                processExcelWorkbook(wb, data.filename);
+                            } catch (e) {
+                                console.error('Error processing Excel file:', e);
+                                statusDiv.innerHTML += `<br>Error processing file: ${e.message}`;
+                            }
+                        };
+                        reader.readAsBinaryString(file);
+                    } else {
+                        statusDiv.innerHTML = `<strong>Error!</strong> ${data.message}`;
+                        statusDiv.style.backgroundColor = '#f8d7da';
+                        statusDiv.style.borderColor = '#f5c6cb';
+                        statusDiv.style.color = '#721c24';
+                        console.error('Error uploading file:', data.message);
+                    }
+                })
+                .catch(error => {
+                    statusDiv.innerHTML = `<strong>Error!</strong> ${error.message}`;
+                    statusDiv.style.backgroundColor = '#f8d7da';
+                    statusDiv.style.borderColor = '#f5c6cb';
+                    statusDiv.style.color = '#721c24';
+                    console.error('Error uploading file:', error);
+                });
+            });
+            
+            // Process Excel workbook with XLSX.js
+            function processExcelWorkbook(workbook, filename) {
+                try {
+                    // Get the first sheet
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    
+                    // Convert to JSON
+                    const jsonData = XLSX.utils.sheet_to_json(sheet);
+                    
+                    // Map the data to the expected format
+                    const districtData = jsonData.map(row => {
+                        // Handle different possible column names
+                        const district = row.District || row.district || row.DISTRICT || row.district_name || row.name || '';
+                        const assessedValue = Number(row.Assessed_Value || row.assessed_value || row.ASSESSED_VALUE || row.assessed || row.value || 0);
+                        const levyRate = Number(row.Levy_Rate || row.levy_rate || row.LEVY_RATE || row.rate || row.levy || 0);
+                        const deduction = Number(row.Deduction || row.deduction || row.DEDUCTION || row.deduct || 0);
+                        
+                        return {
+                            district,
+                            assessedValue,
+                            levyRate,
+                            deduction
+                        };
+                    });
+                    
+                    // Update the global data
+                    window.districtData = districtData;
+                    
+                    // Recalculate PILT
+                    piltResults = window.calculatePILT(districtData);
+                    const totals = window.aggregatePILT(piltResults);
+                    
+                    // Update district select dropdown
+                    const districtSelect = document.getElementById('districtSelect');
+                    
+                    // Clear existing options except the first one
+                    while (districtSelect.options.length > 1) {
+                        districtSelect.remove(1);
+                    }
+                    
+                    // Add options for each district
+                    districtData.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.district;
+                        option.textContent = district.district;
+                        districtSelect.appendChild(option);
+                    });
+                    
+                    // Re-render views
+                    renderPiltTable();
+                    generateChart();
+                    
+                    return true;
+                } catch (e) {
+                    console.error('Error processing Excel file:', e);
+                    throw e;
+                }
+            }
+            
+            // Initial load of available files
+            loadAvailableFiles();
         });
     </script>
 </body>
