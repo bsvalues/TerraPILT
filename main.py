@@ -164,7 +164,7 @@ if st.session_state.pilt_data is not None and not st.session_state.pilt_data.emp
             with st.spinner("Calculating PILT..."):
                 st.session_state.calculated_data = calculate_pilt(
                     st.session_state.pilt_data, 
-                    deductions=deductions if use_deductions else None
+                    deductions=deductions if use_deductions else {}
                 )
                 st.success("PILT calculation completed!")
         
@@ -476,9 +476,8 @@ if st.session_state.pilt_data is not None and not st.session_state.pilt_data.emp
                     st.dataframe(yoy_df)
                 
                 # Get chart theme if available, otherwise use default
-                trend_chart_theme = "default"
-                if 'chart_theme' in locals():
-                    trend_chart_theme = chart_theme
+                # Use the selected chart theme from session state
+                trend_chart_theme = st.session_state.chart_theme
                 
                 # Enhanced styling for the trend chart
                 fig_trend = px.line(
@@ -626,7 +625,7 @@ if st.session_state.pilt_data is not None and not st.session_state.pilt_data.emp
                         st.session_state.pilt_data,
                         new_rates=new_rates,
                         value_adjustments=value_adjustments,
-                        deduction_adjustments=deduction_adjustments if use_scenario_deductions else None
+                        deduction_adjustments=deduction_adjustments if use_scenario_deductions else {}
                     )
                     
                     # Aggregate scenario results by district

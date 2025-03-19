@@ -4,7 +4,7 @@ This module handles the calculation of PILT based on property data.
 """
 import pandas as pd
 
-def calculate_pilt(df: pd.DataFrame, deductions: dict = None) -> pd.DataFrame:
+def calculate_pilt(df: pd.DataFrame, deductions: dict = {}) -> pd.DataFrame:
     """
     Calculate the PILT due for each district based on assessed values and levy rates.
     
@@ -33,9 +33,9 @@ def calculate_pilt(df: pd.DataFrame, deductions: dict = None) -> pd.DataFrame:
     
     return result_df
 
-def perform_what_if_analysis(df: pd.DataFrame, new_rates: dict = None, 
-                            value_adjustments: dict = None, 
-                            deduction_adjustments: dict = None) -> pd.DataFrame:
+def perform_what_if_analysis(df: pd.DataFrame, new_rates: dict = {}, 
+                            value_adjustments: dict = {}, 
+                            deduction_adjustments: dict = {}) -> pd.DataFrame:
     """
     Perform "what-if" scenario analysis by adjusting key parameters.
     
