@@ -111,10 +111,8 @@ function whatIfAnalysis(districts, options = {}) {
   });
 }
 
-// Export functions for use in other scripts
-module.exports = {
-  districtData,
-  calculatePILT,
-  aggregatePILT,
-  whatIfAnalysis
-};
+// Make these functions available to the browser
+window.districtData = districtData;
+window.calculatePILT = calculatePILT;
+window.aggregatePILT = aggregatePILT;
+window.whatIfAnalysis = whatIfAnalysis;
