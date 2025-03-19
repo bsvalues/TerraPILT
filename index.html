@@ -802,12 +802,11 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Process the base64 data with SheetJS
-                            const base64 = data.data;
-                            const binary = atob(base64);
-                            const array = new Uint8Array(binary.length);
-                            for (let i = 0; i < binary.length; i++) {
-                                array[i] = binary.charCodeAt(i);
+                            // Process the hex data with SheetJS
+                            const hex = data.data;
+                            const array = new Uint8Array(hex.length / 2);
+                            for (let i = 0; i < hex.length; i += 2) {
+                                array[i / 2] = parseInt(hex.substr(i, 2), 16);
                             }
                             
                             try {

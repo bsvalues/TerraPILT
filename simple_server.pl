@@ -82,6 +82,82 @@ while (my $client = $server->accept()) {
         next;
     }
     
+    # Special handling for /read_excel
+    if ($path =~ /^read_excel\?file=(.+)$/) {
+        my $file_path = $1;
+        $file_path =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg; # URL decode
+        
+        # Check if file exists
+        unless (-f $file_path) {
+            my $error_json = '{
+                "success": false,
+                "message": "File not found: ' . $file_path . '"
+            }';
+            
+            print $client "HTTP/1.1 404 Not Found\r\n";
+            print $client "Content-Type: application/json\r\n";
+            print $client "Content-Length: " . length($error_json) . "\r\n";
+            print $client "Connection: close\r\n";
+            print $client "Access-Control-Allow-Origin: *\r\n";
+            print $client "\r\n";
+            print $client $error_json;
+            
+            close $client;
+            next;
+        }
+        
+        # Read the file in binary mode
+        my $file_content = '';
+        if (open my $fh, '<:raw', $file_path) {
+            binmode($fh);
+            local $/;
+            $file_content = <$fh>;
+            close $fh;
+        } else {
+            my $error_json = '{
+                "success": false,
+                "message": "Error reading file: ' . $! . '"
+            }';
+            
+            print $client "HTTP/1.1 500 Internal Server Error\r\n";
+            print $client "Content-Type: application/json\r\n";
+            print $client "Content-Length: " . length($error_json) . "\r\n";
+            print $client "Connection: close\r\n";
+            print $client "Access-Control-Allow-Origin: *\r\n";
+            print $client "\r\n";
+            print $client $error_json;
+            
+            close $client;
+            next;
+        }
+        
+        # Convert to base64
+        my $encoded = '';
+        for my $byte (split //, $file_content) {
+            $encoded .= sprintf("%02X", ord($byte));
+        }
+        
+        # Create a JSON response with the base64 data
+        my $filename = basename($file_path);
+        my $json = '{
+            "success": true,
+            "filename": "' . $filename . '",
+            "data": "' . $encoded . '",
+            "format": "hex"
+        }';
+        
+        print $client "HTTP/1.1 200 OK\r\n";
+        print $client "Content-Type: application/json\r\n";
+        print $client "Content-Length: " . length($json) . "\r\n";
+        print $client "Connection: close\r\n";
+        print $client "Access-Control-Allow-Origin: *\r\n";
+        print $client "\r\n";
+        print $client $json;
+        
+        close $client;
+        next;
+    }
+    
     my $content;
     my $content_type = 'text/plain';
     my $status = "200 OK";
