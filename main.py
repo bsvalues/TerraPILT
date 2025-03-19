@@ -9,16 +9,18 @@ import plotly.express as px
 import io
 import base64
 import tempfile
-import pdfkit
 import csv
+import os
+import json
 from datetime import datetime
 
 # Import custom modules
-from database import load_data, get_pilt_data, get_historical_pilt_data, get_districts
+from database import get_database_connection, load_data, get_pilt_data, get_historical_pilt_data, get_districts
 from calculations import (
     calculate_pilt, 
     perform_what_if_analysis, 
     aggregate_pilt_by_district,
+    calculate_year_over_year_changes,
     generate_historical_pilt_trend
 )
 
@@ -229,52 +231,204 @@ if st.session_state.pilt_data is not None and not st.session_state.pilt_data.emp
                 
                 elif export_format == "PDF":
                     try:
-                        # Create HTML content for PDF
+                        st.info("Preparing Print-Friendly HTML report...")
+                        
+                        # Format currency values for better display
+                        formatted_summary = district_summary.copy()
+                        for col in ['Assessed_Value', 'Base_PILT', 'Deduction', 'PILT_Due']:
+                            formatted_summary[col] = formatted_summary[col].map('${:,.2f}'.format)
+                        
+                        # Create interactive chart for the report
+                        fig = px.bar(
+                            district_summary, 
+                            x='District', 
+                            y='PILT_Due',
+                            title="PILT Due by District",
+                            labels={"PILT_Due": "PILT Amount ($)", "District": "Tax District"},
+                            color='District'
+                        )
+                        chart_html = fig.to_html(include_plotlyjs='cdn', full_html=False)
+                        
+                        # Create HTML content for Print-friendly view
                         html_content = f"""
                         <html>
                         <head>
                             <title>PILT Report - {now}</title>
                             <style>
-                                body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                                h1 {{ color: #0077b6; text-align: center; }}
-                                h2 {{ color: #0077b6; margin-top: 20px; }}
-                                table {{ border-collapse: collapse; width: 100%; margin-top: 10px; }}
-                                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-                                th {{ background-color: #f2f2f2; }}
-                                .total {{ font-weight: bold; }}
+                                @media print {{
+                                    @page {{
+                                        size: letter;
+                                        margin: 1cm;
+                                    }}
+                                }}
+                                body {{ 
+                                    font-family: Arial, sans-serif; 
+                                    margin: 20px; 
+                                    line-height: 1.4;
+                                }}
+                                h1 {{ 
+                                    color: #0077b6; 
+                                    text-align: center; 
+                                    border-bottom: 2px solid #0077b6;
+                                    padding-bottom: 10px;
+                                }}
+                                h2 {{ 
+                                    color: #0077b6; 
+                                    margin-top: 20px; 
+                                    border-bottom: 1px solid #ddd;
+                                    padding-bottom: 5px;
+                                }}
+                                table {{ 
+                                    border-collapse: collapse; 
+                                    width: 100%; 
+                                    margin: 15px 0;
+                                    font-size: 12px;
+                                }}
+                                th, td {{ 
+                                    border: 1px solid #ddd; 
+                                    padding: 8px; 
+                                    text-align: left;
+                                }}
+                                th {{ 
+                                    background-color: #f2f2f2; 
+                                    font-weight: bold;
+                                }}
+                                tr:nth-child(even) {{
+                                    background-color: #f9f9f9;
+                                }}
+                                .total {{ 
+                                    font-weight: bold; 
+                                    font-size: 16px;
+                                    margin: 10px 0;
+                                    text-align: right;
+                                    padding-right: 20px;
+                                }}
+                                .chart {{
+                                    width: 100%;
+                                    text-align: center;
+                                    margin: 20px 0;
+                                }}
+                                .header {{
+                                    display: flex;
+                                    justify-content: space-between;
+                                    margin-bottom: 20px;
+                                }}
+                                .report-info {{
+                                    font-size: 12px;
+                                    color: #666;
+                                    margin-bottom: 20px;
+                                }}
+                                footer {{
+                                    margin-top: 30px;
+                                    border-top: 1px solid #ddd;
+                                    padding-top: 10px;
+                                    font-size: 10px;
+                                    color: #666;
+                                    text-align: center;
+                                }}
+                                .print-btn {{
+                                    background-color: #0077b6;
+                                    color: white;
+                                    padding: 10px 15px;
+                                    text-align: center;
+                                    text-decoration: none;
+                                    display: inline-block;
+                                    font-size: 16px;
+                                    margin: 4px 2px;
+                                    cursor: pointer;
+                                    border-radius: 4px;
+                                    border: none;
+                                }}
+                                .print-btn:hover {{
+                                    background-color: #005f8d;
+                                }}
+                                .no-print {{
+                                    display: block;
+                                }}
+                                @media print {{
+                                    .no-print {{
+                                        display: none;
+                                    }}
+                                }}
                             </style>
+                            <script>
+                                function printReport() {{
+                                    window.print();
+                                }}
+                            </script>
                         </head>
                         <body>
-                            <h1>Benton County PILT Report</h1>
-                            <p>Generated on: {datetime.now().strftime("%B %d, %Y at %I:%M %p")}</p>
+                            <div class="no-print" style="text-align:center; margin-bottom:20px;">
+                                <button class="print-btn" onclick="printReport()">Print this Report</button>
+                                <p>Click the button above to print this report or save as PDF using your browser's print function</p>
+                            </div>
+
+                            <div class="header">
+                                <div>
+                                    <h1>Benton County PILT Report</h1>
+                                    <div class="report-info">
+                                        <p><strong>Generated on:</strong> {datetime.now().strftime("%B %d, %Y at %I:%M %p")}</p>
+                                        <p><strong>Total Records:</strong> {len(st.session_state.calculated_data)}</p>
+                                        <p><strong>Districts:</strong> {len(district_summary)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h2>Executive Summary</h2>
+                            <p>This report provides a comprehensive analysis of Payment in Lieu of Taxes (PILT) 
+                            calculations for Benton County. The total PILT due across all districts 
+                            is <strong>${total_pilt:,.2f}</strong>.</p>
+                            
+                            <div class="chart">
+                                {chart_html}
+                            </div>
                             
                             <h2>PILT Summary by District</h2>
-                            {district_summary.to_html(index=False)}
+                            {formatted_summary.to_html(index=False)}
                             
                             <p class="total">Total PILT Due: ${total_pilt:,.2f}</p>
                             
-                            <h2>PILT Detail</h2>
+                            <h2>PILT Calculation Detail</h2>
+                            <p>The following table shows the detailed PILT calculations for each property:</p>
                             {st.session_state.calculated_data.to_html(index=False)}
+                            
+                            <footer>
+                                <p>Benton County PILT Dashboard | Property Assessment Division</p>
+                                <p>This document is for informational purposes only.</p>
+                            </footer>
                         </body>
                         </html>
                         """
                         
-                        # Create PDF
-                        with tempfile.NamedTemporaryFile(suffix='.html') as f:
-                            f.write(html_content.encode('utf-8'))
-                            f.flush()
-                            
-                            pdf_data = pdfkit.from_file(f.name, False)
-                            
-                            st.download_button(
-                                label="Download PDF Report",
-                                data=pdf_data,
-                                file_name=f"pilt_report_{now}.pdf",
-                                mime="application/pdf"
-                            )
+                        # Use base64 encoding for the HTML content
+                        encoded_html = base64.b64encode(html_content.encode()).decode()
+                        
+                        # Create a data URL
+                        href = f'data:text/html;base64,{encoded_html}'
+                        
+                        # Add download button
+                        st.markdown(
+                            f'<a href="{href}" download="pilt_report_{now}.html" '
+                            f'class="element-container" style="background-color:#0077b6; color:white; '
+                            f'padding:10px 20px; text-align:center; text-decoration:none; '
+                            f'display:inline-block; font-size:16px; margin:10px 2px; cursor:pointer; '
+                            f'border-radius:4px;">Download Print-Ready Report</a>',
+                            unsafe_allow_html=True
+                        )
+                        
+                        # Add instructions
+                        st.success("Report generated successfully!")
+                        st.info("""
+                        **Instructions:**
+                        1. Click the button above to download the HTML report
+                        2. Open the HTML file in your web browser
+                        3. Use the 'Print' button in the report or your browser's print function (Ctrl+P / Cmd+P)
+                        4. Select 'Save as PDF' in the printer options to create a PDF file
+                        """)
+                        
                     except Exception as e:
-                        st.error(f"Error generating PDF: {str(e)}")
-                        st.info("If PDF generation fails, please try Excel or CSV format instead.")
+                        st.error(f"Error generating report: {str(e)}")
+                        st.info("If HTML report generation fails, please try Excel or CSV format instead.")
     
     with tab3:
         st.markdown("""

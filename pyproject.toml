@@ -1,7 +1,7 @@
 [project]
 name = "repl-nix-workspace"
 version = "0.1.0"
-description = "Add your description here"
+description = "Benton County PILT Dashboard"
 requires-python = ">=3.11"
 dependencies = [
     "openpyxl>=3.1.5",
@@ -12,4 +12,6 @@ dependencies = [
     "sqlalchemy>=2.0.39",
     "streamlit>=1.43.2",
     "xlsxwriter>=3.2.2",
+    "pillow>=10.0.0",
+    "kaleido>=0.2.1",
 ]

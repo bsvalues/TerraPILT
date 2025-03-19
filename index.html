@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benton County PILT Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        header {
+            background-color: #0077b6;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .metric {
+            background-color: #e6f2ff;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .metric h3 {
+            margin: 0;
+            color: #0077b6;
+        }
+        .metric p {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0 0 0;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+            color: #666;
+        }
+        .chart {
+            height: 300px;
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .note {
+            background-color: #ffffd8;
+            padding: 10px;
+            border-left: 4px solid #ffcc00;
+            margin: 15px 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #0077b6;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #005b8a;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .actions {
+            margin-top: 20px;
+            text-align: right;
+        }
+        #exportBtn {
+            background-color: #28a745;
+        }
+        #exportBtn:hover {
+            background-color: #218838;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+            background-color: #f8f9fa;
+        }
+        .tab.active {
+            background-color: white;
+            border-color: #ddd;
+            margin-bottom: -1px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Benton County PILT Dashboard</h1>
+        </header>
+
+        <div class="info-box">
+            <h2>About This Dashboard</h2>
+            <p>This dashboard provides an overview of Payment in Lieu of Taxes (PILT) calculations for Benton County. It allows you to analyze current PILT data and perform "what-if" scenario analysis.</p>
+            <p>With this dashboard, you can:</p>
+            <ul>
+                <li>View PILT calculations based on assessed values and levy rates</li>
+                <li>Conduct "what-if" analysis with adjustable parameters</li>
+                <li>View visualizations of PILT data</li>
+                <li>Export reports in PDF format</li>
+            </ul>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="current">Current PILT</div>
+            <div class="tab" data-tab="whatif">What-If Analysis</div>
+        </div>
+
+        <div id="current" class="tab-content active">
+            <div class="card">
+                <h2>PILT Summary by District</h2>
+                <div class="actions">
+                    <button id="exportBtn">Export to PDF</button>
+                </div>
+                <table id="piltTable">
+                    <thead>
+                        <tr>
+                            <th>District</th>
+                            <th>Assessed Value</th>
+                            <th>Levy Rate</th>
+                            <th>Base PILT</th>
+                            <th>Deduction</th>
+                            <th>PILT Due</th>
+                        </tr>
+                    </thead>
+                    <tbody id="piltTableBody">
+                        <!-- This will be filled by JavaScript -->
+                    </tbody>
+                    <tfoot id="piltTableFoot">
+                        <!-- This will be filled by JavaScript -->
+                    </tfoot>
+                </table>
+
+                <div class="grid">
+                    <div class="metric">
+                        <h3>Total PILT Due</h3>
+                        <p id="totalPilt">$0.00</p>
+                    </div>
+                    <div class="metric">
+                        <h3>Total Assessed Value</h3>
+                        <p id="totalAssessed">$0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>PILT Visualization</h2>
+                <div class="chart" id="chartContainer">
+                    <!-- SVG chart will be generated here -->
+                </div>
+            </div>
+        </div>
+
+        <div id="whatif" class="tab-content">
+            <div class="card">
+                <h2>What-If Scenario Analysis</h2>
+                <p>Adjust the parameters below to see how changes would affect PILT calculations.</p>
+                
+                <div class="form-group">
+                    <label for="districtSelect">Select District:</label>
+                    <select id="districtSelect">
+                        <option value="">All Districts</option>
+                        <!-- Options will be filled by JavaScript -->
+                    </select>
+                </div>
+                
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="levyAdjustment">Adjust Levy Rate:</label>
+                        <input type="number" id="levyAdjustment" min="0" max="0.01" step="0.0001" value="0.0025">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="valueAdjustment">Adjust Assessed Value (%):</label>
+                        <input type="number" id="valueAdjustment" min="-50" max="50" step="1" value="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="deductionAdjustment">Adjust Deduction:</label>
+                        <input type="number" id="deductionAdjustment" min="0" step="1000" value="0">
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <button id="applyWhatIf">Apply Changes</button>
+                    <button id="resetWhatIf">Reset</button>
+                </div>
+                
+                <h3>Scenario Results</h3>
+                <table id="whatIfTable">
+                    <thead>
+                        <tr>
+                            <th>District</th>
+                            <th>Original PILT</th>
+                            <th>New PILT</th>
+                            <th>Difference</th>
+                            <th>% Change</th>
+                        </tr>
+                    </thead>
+                    <tbody id="whatIfTableBody">
+                        <!-- This will be filled by JavaScript after user clicks "Apply Changes" -->
+                    </tbody>
+                    <tfoot id="whatIfTableFoot">
+                        <!-- This will be filled by JavaScript -->
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <footer>
+            <p>Benton County PILT Dashboard | Property Assessment Division</p>
+            <p>Last Updated: March 19, 2025</p>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="simple_pilt_calculator.js"></script>
+    <script>
+        // Format currency values
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', { 
+                style: 'currency', 
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+        }
+        
+        // Format percentages
+        function formatPercent(value) {
+            return new Intl.NumberFormat('en-US', { 
+                style: 'percent', 
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+        }
+        
+        // Format levy rates
+        function formatRate(value) {
+            return new Intl.NumberFormat('en-US', { 
+                minimumFractionDigits: 4,
+                maximumFractionDigits: 4
+            }).format(value);
+        }
+        
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get data from the calculator module
+            const districtData = window.districtData || [];
+            let piltResults = window.calculatePILT(districtData);
+            const totals = window.aggregatePILT(piltResults);
+            
+            // Populate district select dropdown
+            const districtSelect = document.getElementById('districtSelect');
+            districtData.forEach(district => {
+                const option = document.createElement('option');
+                option.value = district.district;
+                option.textContent = district.district;
+                districtSelect.appendChild(option);
+            });
+            
+            // Functions to render tables and charts
+            function renderPiltTable() {
+                const tableBody = document.getElementById('piltTableBody');
+                const tableFoot = document.getElementById('piltTableFoot');
+                
+                // Clear existing rows
+                tableBody.innerHTML = '';
+                
+                // Add data rows
+                piltResults.forEach(district => {
+                    const row = document.createElement('tr');
+                    
+                    row.innerHTML = `
+                        <td>${district.district}</td>
+                        <td>${formatCurrency(district.assessedValue)}</td>
+                        <td>${formatRate(district.levyRate)}</td>
+                        <td>${formatCurrency(district.basePILT)}</td>
+                        <td>${formatCurrency(district.deduction)}</td>
+                        <td>${formatCurrency(district.piltDue)}</td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+                
+                // Add totals row
+                tableFoot.innerHTML = `
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td><strong>${formatCurrency(totals.assessedValue)}</strong></td>
+                        <td><strong>-</strong></td>
+                        <td><strong>${formatCurrency(totals.basePILT)}</strong></td>
+                        <td><strong>${formatCurrency(totals.deduction)}</strong></td>
+                        <td><strong>${formatCurrency(totals.piltDue)}</strong></td>
+                    </tr>
+                `;
+                
+                // Update metrics
+                document.getElementById('totalPilt').textContent = formatCurrency(totals.piltDue);
+                document.getElementById('totalAssessed').textContent = formatCurrency(totals.assessedValue);
+            }
+            
+            function generateChart() {
+                const chartContainer = document.getElementById('chartContainer');
+                const maxValue = Math.max(...piltResults.map(d => d.piltDue));
+                const chartWidth = 600;
+                const chartHeight = 250;
+                const padding = { top: 40, right: 50, bottom: 50, left: 100 };
+                
+                // Generate SVG chart
+                let svg = `
+                    <svg width="${chartWidth}" height="${chartHeight}" xmlns="http://www.w3.org/2000/svg">
+                        <style>
+                            .bar { fill: #0077b6; }
+                            .bar:hover { fill: #00507a; }
+                            .axis { stroke: #333; stroke-width: 1; }
+                            .label { font-family: sans-serif; font-size: 12px; }
+                            .title { font-family: sans-serif; font-size: 14px; font-weight: bold; }
+                        </style>
+                        <rect width="${chartWidth}" height="${chartHeight}" fill="#f8f9fa"/>
+                        <text x="${chartWidth/2}" y="20" text-anchor="middle" class="title">PILT Due by District</text>
+                `;
+                
+                // X and Y axes
+                svg += `
+                    <line x1="${padding.left}" y1="${chartHeight - padding.bottom}" 
+                          x2="${chartWidth - padding.right}" y2="${chartHeight - padding.bottom}" class="axis"/>
+                    <line x1="${padding.left}" y1="${chartHeight - padding.bottom}" 
+                          x2="${padding.left}" y2="${padding.top}" class="axis"/>
+                `;
+                
+                // Plot bars
+                const barWidth = (chartWidth - padding.left - padding.right) / piltResults.length - 10;
+                const chartArea = chartHeight - padding.top - padding.bottom;
+                
+                piltResults.forEach((district, i) => {
+                    const x = padding.left + i * (barWidth + 10) + 5;
+                    const barHeight = (district.piltDue / maxValue) * chartArea;
+                    const y = chartHeight - padding.bottom - barHeight;
+                    
+                    svg += `
+                        <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" class="bar"/>
+                        <text x="${x + barWidth/2}" y="${chartHeight - padding.bottom + 20}" 
+                              text-anchor="middle" class="label">${district.district.split(' ').pop()}</text>
+                    `;
+                });
+                
+                // Y axis labels
+                for (let i = 0; i <= 4; i++) {
+                    const y = chartHeight - padding.bottom - (i * chartArea / 4);
+                    const value = (i * maxValue / 4);
+                    
+                    svg += `
+                        <text x="${padding.left - 5}" y="${y}" text-anchor="end" class="label">
+                            ${formatCurrency(value)}
+                        </text>
+                    `;
+                }
+                
+                svg += '</svg>';
+                chartContainer.innerHTML = svg;
+            }
+            
+            // Initial rendering
+            renderPiltTable();
+            generateChart();
+            
+            // Tab switching
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs and content
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and corresponding content
+                    this.classList.add('active');
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+            
+            // What-If analysis functionality
+            document.getElementById('applyWhatIf').addEventListener('click', function() {
+                const selectedDistrict = document.getElementById('districtSelect').value;
+                const levyRate = parseFloat(document.getElementById('levyAdjustment').value);
+                const valueAdjustment = parseFloat(document.getElementById('valueAdjustment').value) / 100 + 1; // Convert from percentage
+                const deduction = parseFloat(document.getElementById('deductionAdjustment').value);
+                
+                const newRates = {};
+                const valueAdjustments = {};
+                const deductionAdjustments = {};
+                
+                if (selectedDistrict) {
+                    // Apply to single district
+                    newRates[selectedDistrict] = levyRate;
+                    valueAdjustments[selectedDistrict] = valueAdjustment;
+                    deductionAdjustments[selectedDistrict] = deduction;
+                } else {
+                    // Apply to all districts
+                    districtData.forEach(district => {
+                        newRates[district.district] = levyRate;
+                        valueAdjustments[district.district] = valueAdjustment;
+                        deductionAdjustments[district.district] = deduction;
+                    });
+                }
+                
+                // Get adjusted data
+                const adjustedDistricts = window.whatIfAnalysis(districtData, {
+                    newRates,
+                    valueAdjustments,
+                    deductionAdjustments
+                });
+                
+                const adjustedResults = window.calculatePILT(adjustedDistricts);
+                const adjustedTotals = window.aggregatePILT(adjustedResults);
+                
+                // Render what-if table
+                const tableBody = document.getElementById('whatIfTableBody');
+                const tableFoot = document.getElementById('whatIfTableFoot');
+                
+                // Clear existing rows
+                tableBody.innerHTML = '';
+                
+                // Add comparison rows
+                piltResults.forEach((district, i) => {
+                    const adjustedDistrict = adjustedResults[i];
+                    const difference = adjustedDistrict.piltDue - district.piltDue;
+                    const percentChange = district.piltDue !== 0 ? difference / district.piltDue : 0;
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${district.district}</td>
+                        <td>${formatCurrency(district.piltDue)}</td>
+                        <td>${formatCurrency(adjustedDistrict.piltDue)}</td>
+                        <td>${formatCurrency(difference)}</td>
+                        <td>${formatPercent(percentChange)}</td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+                
+                // Add totals row
+                const totalDifference = adjustedTotals.piltDue - totals.piltDue;
+                const totalPercentChange = totals.piltDue !== 0 ? totalDifference / totals.piltDue : 0;
+                
+                tableFoot.innerHTML = `
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td><strong>${formatCurrency(totals.piltDue)}</strong></td>
+                        <td><strong>${formatCurrency(adjustedTotals.piltDue)}</strong></td>
+                        <td><strong>${formatCurrency(totalDifference)}</strong></td>
+                        <td><strong>${formatPercent(totalPercentChange)}</strong></td>
+                    </tr>
+                `;
+            });
+            
+            // Reset what-if form
+            document.getElementById('resetWhatIf').addEventListener('click', function() {
+                document.getElementById('districtSelect').value = '';
+                document.getElementById('levyAdjustment').value = '0.0025';
+                document.getElementById('valueAdjustment').value = '0';
+                document.getElementById('deductionAdjustment').value = '0';
+                document.getElementById('whatIfTableBody').innerHTML = '';
+                document.getElementById('whatIfTableFoot').innerHTML = '';
+            });
+            
+            // Export to PDF functionality
+            document.getElementById('exportBtn').addEventListener('click', function() {
+                // Check if jsPDF is available
+                if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
+                    alert('PDF export library not loaded. Please check your internet connection.');
+                    return;
+                }
+                
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add title
+                doc.setFontSize(20);
+                doc.text('Benton County PILT Dashboard Report', 14, 22);
+                
+                // Add date
+                doc.setFontSize(12);
+                doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
+                
+                // Add PILT table
+                doc.autoTable({
+                    head: [['District', 'Assessed Value', 'Levy Rate', 'Base PILT', 'Deduction', 'PILT Due']],
+                    body: piltResults.map(district => [
+                        district.district,
+                        formatCurrency(district.assessedValue),
+                        formatRate(district.levyRate),
+                        formatCurrency(district.basePILT),
+                        formatCurrency(district.deduction),
+                        formatCurrency(district.piltDue)
+                    ]),
+                    foot: [[
+                        'Total',
+                        formatCurrency(totals.assessedValue),
+                        '-',
+                        formatCurrency(totals.basePILT),
+                        formatCurrency(totals.deduction),
+                        formatCurrency(totals.piltDue)
+                    ]],
+                    startY: 40,
+                    theme: 'grid',
+                    headStyles: { fillColor: [0, 119, 182] },
+                    footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
+                });
+                
+                // Save the PDF
+                doc.save('PILT_Dashboard_Report.pdf');
+            });
+        });
+    </script>
+</body>
+</html>
