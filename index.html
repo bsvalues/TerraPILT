@@ -178,6 +178,23 @@
                 <li>Export reports in PDF format</li>
             </ul>
         </div>
+        
+        <div class="card">
+            <h2>Upload PILT Data</h2>
+            <p>Upload an Excel file containing PILT data to replace the sample data.</p>
+            <p>The Excel file should have columns for: "District", "Assessed_Value", "Levy_Rate", and "Deduction" (optional).</p>
+            
+            <div class="form-group">
+                <label for="fileInput">Choose an Excel file:</label>
+                <input type="file" id="fileInput" accept=".xlsx, .xls" />
+            </div>
+            
+            <div class="actions">
+                <button id="uploadBtn">Upload Data</button>
+            </div>
+            
+            <div id="uploadStatus" class="note" style="display: none;"></div>
+        </div>
 
         <div class="tabs">
             <div class="tab active" data-tab="current">Current PILT</div>
@@ -293,6 +310,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="simple_pilt_calculator.js"></script>
     <script>
         // Format currency values
@@ -541,6 +559,146 @@
                 document.getElementById('deductionAdjustment').value = '0';
                 document.getElementById('whatIfTableBody').innerHTML = '';
                 document.getElementById('whatIfTableFoot').innerHTML = '';
+            });
+            
+            // File upload and processing
+            document.getElementById('uploadBtn').addEventListener('click', function() {
+                const fileInput = document.getElementById('fileInput');
+                const uploadStatus = document.getElementById('uploadStatus');
+                
+                if (!fileInput.files.length) {
+                    uploadStatus.style.display = 'block';
+                    uploadStatus.textContent = 'Please select a file first.';
+                    uploadStatus.style.borderColor = '#dc3545';
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                uploadStatus.style.display = 'block';
+                uploadStatus.textContent = 'Processing file...';
+                uploadStatus.style.borderColor = '#ffc107';
+                
+                // Use SheetJS to read the Excel file
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Get the first sheet
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        
+                        // Convert to JSON
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        
+                        if (!jsonData.length) {
+                            throw new Error('No data found in the Excel file.');
+                        }
+                        
+                        // Map data to our format
+                        let newDistrictData = [];
+                        let missingColumns = [];
+                        
+                        // Check required columns
+                        const requiredColumns = ['District', 'Assessed_Value', 'Levy_Rate'];
+                        const firstRow = jsonData[0];
+                        
+                        requiredColumns.forEach(col => {
+                            if (!(col in firstRow) && 
+                                !(col.toLowerCase() in firstRow) && 
+                                !(col.replace('_', '') in firstRow) &&
+                                !(col.replace('_', ' ') in firstRow)) {
+                                missingColumns.push(col);
+                            }
+                        });
+                        
+                        if (missingColumns.length) {
+                            throw new Error(`Missing required columns: ${missingColumns.join(', ')}`);
+                        }
+                        
+                        // Map the data
+                        jsonData.forEach(row => {
+                            let district, assessedValue, levyRate, deduction = 0;
+                            
+                            // Try to find District column with various formats
+                            if ('District' in row) district = row.District;
+                            else if ('district' in row) district = row.district;
+                            else if ('DISTRICT' in row) district = row.DISTRICT;
+                            else district = row[Object.keys(row).find(k => k.toLowerCase() === 'district')];
+                            
+                            // Try to find Assessed_Value column with various formats
+                            if ('Assessed_Value' in row) assessedValue = row.Assessed_Value;
+                            else if ('Assessed Value' in row) assessedValue = row['Assessed Value'];
+                            else if ('assessed_value' in row) assessedValue = row.assessed_value;
+                            else if ('assessedvalue' in row) assessedValue = row.assessedvalue;
+                            else if ('AssessedValue' in row) assessedValue = row.AssessedValue;
+                            else assessedValue = row[Object.keys(row).find(k => 
+                                k.toLowerCase().includes('assessed') && 
+                                k.toLowerCase().includes('value'))];
+                            
+                            // Try to find Levy_Rate column with various formats
+                            if ('Levy_Rate' in row) levyRate = row.Levy_Rate;
+                            else if ('Levy Rate' in row) levyRate = row['Levy Rate'];
+                            else if ('levy_rate' in row) levyRate = row.levy_rate;
+                            else if ('levyrate' in row) levyRate = row.levyrate;
+                            else if ('LevyRate' in row) levyRate = row.LevyRate;
+                            else levyRate = row[Object.keys(row).find(k => 
+                                k.toLowerCase().includes('levy') && 
+                                k.toLowerCase().includes('rate'))];
+                            
+                            // Try to find Deduction column if it exists (optional)
+                            if ('Deduction' in row) deduction = row.Deduction;
+                            else if ('deduction' in row) deduction = row.deduction;
+                            else if ('DEDUCTION' in row) deduction = row.DEDUCTION;
+                            else {
+                                const deductionKey = Object.keys(row).find(k => k.toLowerCase() === 'deduction');
+                                if (deductionKey) deduction = row[deductionKey];
+                            }
+                            
+                            // Convert to appropriate types and add to array
+                            newDistrictData.push({
+                                district: String(district),
+                                assessedValue: Number(assessedValue),
+                                levyRate: Number(levyRate),
+                                deduction: deduction ? Number(deduction) : 0
+                            });
+                        });
+                        
+                        // Update the dashboard with new data
+                        window.districtData = newDistrictData;
+                        piltResults = window.calculatePILT(newDistrictData);
+                        const totals = window.aggregatePILT(piltResults);
+                        
+                        // Update the UI
+                        renderPiltTable();
+                        generateChart();
+                        
+                        // Clear and repopulate the district select dropdown
+                        const districtSelect = document.getElementById('districtSelect');
+                        districtSelect.innerHTML = '<option value="">All Districts</option>';
+                        newDistrictData.forEach(district => {
+                            const option = document.createElement('option');
+                            option.value = district.district;
+                            option.textContent = district.district;
+                            districtSelect.appendChild(option);
+                        });
+                        
+                        uploadStatus.textContent = `Success! Loaded ${newDistrictData.length} districts.`;
+                        uploadStatus.style.borderColor = '#28a745';
+                        
+                    } catch (error) {
+                        console.error('Error processing Excel file:', error);
+                        uploadStatus.textContent = `Error: ${error.message}`;
+                        uploadStatus.style.borderColor = '#dc3545';
+                    }
+                };
+                
+                reader.onerror = function() {
+                    uploadStatus.textContent = 'Error reading the file.';
+                    uploadStatus.style.borderColor = '#dc3545';
+                };
+                
+                reader.readAsArrayBuffer(file);
             });
             
             // Export to PDF functionality
