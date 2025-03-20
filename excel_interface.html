@@ -310,6 +310,60 @@
             opacity: 1;
         }
         
+        /* AI Tooltip Styles */
+        .ai-tooltip {
+            position: absolute;
+            background-color: #fff;
+            border: 1px solid #0077b6;
+            border-radius: 6px;
+            padding: 10px;
+            max-width: 300px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #333;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        
+        .ai-tooltip.visible {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .ai-tooltip-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #0077b6;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        
+        .ai-tooltip-content {
+            margin-bottom: 5px;
+        }
+        
+        .ai-tooltip-loading {
+            font-style: italic;
+            color: #777;
+        }
+        
+        .ai-tooltip-footer {
+            font-size: 11px;
+            color: #777;
+            margin-top: 5px;
+            text-align: right;
+        }
+        
+        .ai-tooltip-icon {
+            cursor: pointer;
+            color: #0077b6;
+            margin-left: 5px;
+            font-size: 14px;
+        }
+        
         footer {
             text-align: center;
             margin-top: 30px;
@@ -668,6 +722,18 @@
     <!-- Main JavaScript -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Setup tooltip close behavior when clicking outside
+            document.addEventListener('click', function(e) {
+                const tooltip = document.getElementById('ai-tooltip');
+                const isClickInsideTooltip = tooltip.contains(e.target);
+                const isTooltipIcon = e.target.classList.contains('ai-tooltip-icon');
+                
+                // If clicking outside tooltip and not on a tooltip icon, hide it
+                if (!isClickInsideTooltip && !isTooltipIcon && tooltip.classList.contains('visible')) {
+                    tooltip.classList.remove('visible');
+                }
+            });
+            
             // Format currency values
             function formatCurrency(value) {
                 return new Intl.NumberFormat('en-US', { 
@@ -696,6 +762,62 @@
             const piltData = window.districtData || [];
             let piltResults = window.calculatePILT(piltData);
             
+            // Function to create a cell renderer with AI tooltip capability
+            function createCellRendererWithTooltip(cellType) {
+                return function(instance, td, row, col, prop, value, cellProperties) {
+                    // Use the default renderer to display the value
+                    Handsontable.renderers.NumericRenderer.apply(this, arguments);
+                    
+                    // Add tooltip icon for AI insights
+                    const iconSpan = document.createElement('span');
+                    iconSpan.innerHTML = '<i class="fas fa-brain ai-tooltip-icon"></i>';
+                    iconSpan.style.marginLeft = '5px';
+                    
+                    // Add event listener to icon
+                    iconSpan.querySelector('i').addEventListener('click', function(e) {
+                        e.stopPropagation(); // Prevent cell selection
+                        
+                        const rect = td.getBoundingClientRect();
+                        const tooltip = document.getElementById('ai-tooltip');
+                        
+                        // Position tooltip
+                        tooltip.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+                        tooltip.style.left = (rect.left + window.scrollX) + 'px';
+                        
+                        // Update tooltip content
+                        tooltip.querySelector('.ai-tooltip-title').textContent = 
+                            `AI Insight: ${instance.getColHeader(col)}`;
+                        tooltip.querySelector('.ai-tooltip-content').innerHTML = 
+                            '<div class="ai-tooltip-loading">Loading AI insights...</div>';
+                        
+                        // Show tooltip
+                        tooltip.classList.add('visible');
+                        
+                        // Get district data for this row
+                        const rowData = instance.getSourceDataAtRow(row);
+                        
+                        // Get AI insight
+                        if (window.aiAssistant) {
+                            window.aiAssistant.getContextualTooltip(cellType, value, rowData, piltResults)
+                                .then(insight => {
+                                    tooltip.querySelector('.ai-tooltip-content').innerHTML = insight;
+                                })
+                                .catch(error => {
+                                    tooltip.querySelector('.ai-tooltip-content').innerHTML = 
+                                        `<div style="color: #d9534f;">Error: ${error.message}</div>
+                                        <div>Please ensure your OpenAI API key is set in the Settings tab.</div>`;
+                                });
+                        } else {
+                            tooltip.querySelector('.ai-tooltip-content').innerHTML = 
+                                '<div>AI Assistant not initialized. Please check Settings tab.</div>';
+                        }
+                    });
+                    
+                    // Append icon to cell
+                    td.appendChild(iconSpan);
+                };
+            }
+            
             // Initialize Handsontable
             const container = document.getElementById('grid-container');
             const hot = new Handsontable(container, {
@@ -709,29 +831,34 @@
                     { 
                         data: 'assessedValue',
                         type: 'numeric',
-                        numericFormat: { pattern: '$0,0.00', culture: 'en-US' }
+                        numericFormat: { pattern: '$0,0.00', culture: 'en-US' },
+                        renderer: createCellRendererWithTooltip('assessedValue')
                     },
                     { 
                         data: 'levyRate',
                         type: 'numeric',
-                        numericFormat: { pattern: '0.0000' }
+                        numericFormat: { pattern: '0.0000' },
+                        renderer: createCellRendererWithTooltip('levyRate')
                     },
                     { 
                         data: 'basePILT',
                         type: 'numeric',
                         numericFormat: { pattern: '$0,0.00', culture: 'en-US' },
-                        readOnly: true
+                        readOnly: true,
+                        renderer: createCellRendererWithTooltip('basePILT')
                     },
                     { 
                         data: 'deduction',
                         type: 'numeric',
-                        numericFormat: { pattern: '$0,0.00', culture: 'en-US' }
+                        numericFormat: { pattern: '$0,0.00', culture: 'en-US' },
+                        renderer: createCellRendererWithTooltip('deduction')
                     },
                     { 
                         data: 'piltDue',
                         type: 'numeric',
                         numericFormat: { pattern: '$0,0.00', culture: 'en-US' },
-                        readOnly: true
+                        readOnly: true,
+                        renderer: createCellRendererWithTooltip('piltDue')
                     }
                 ],
                 contextMenu: ['row_above', 'row_below', 'remove_row', 'undo', 'redo'],
@@ -1643,5 +1770,16 @@
             updateAIFeaturesVisibility();
         });
     </script>
+    
+    <!-- AI Tooltip Container (will be positioned dynamically) -->
+    <div id="ai-tooltip" class="ai-tooltip">
+        <div class="ai-tooltip-title">AI Insight</div>
+        <div class="ai-tooltip-content">
+            <div class="ai-tooltip-loading">Loading AI insights...</div>
+        </div>
+        <div class="ai-tooltip-footer">
+            <small>Powered by AI Assistant</small>
+        </div>
+    </div>
 </body>
 </html>
