@@ -1,0 +1,45 @@
+Below is an example prompt you can provide to Replit’s AI Agent to integrate these advanced enhancements into your BS Family Values application—leveraging and extending our existing DataMartManager module (found here: [https://replit.com/@bsvalues/DataMartManager](https://replit.com/@bsvalues/DataMartManager)):
+
+---
+
+**Prompt:**
+
+> We are enhancing our BS Family Values real estate appraisal platform by adding advanced valuation and mapping capabilities to our BSValuator™ module. Please integrate the following features into our system, using our existing DataMartManager codebase (https://replit.com/@bsvalues/DataMartManager) as a foundation:
+> 
+> **1. GIS & Mapping Enhancements:**  
+> - Integrate a mapping library (e.g., Leaflet or Mapbox) for interactive property boundary visualization.  
+> - Implement toggling of map overlays (e.g., zoning, heat maps, property boundaries).
+> 
+> **2. Machine Learning Valuation Integration:**  
+> - Develop a regression model that uses historical property data to predict current values.  
+> - Blend these predictions with traditional appraisal methods and display associated confidence scores.
+> 
+> **3. Advanced Neighborhood Analysis:**  
+> - Incorporate additional data such as school district ratings, crime rates, and proximity to amenities (shopping, parks, transit) into the valuation model.
+> 
+> **4. Economic Factors Integration:**  
+> - Factor in local employment rates, interest rate sensitivity, and regional economic growth forecasts to refine property value estimates.
+> 
+> **5. Customizable Valuation Weights:**  
+> - Allow users to adjust the weights of different valuation factors and save/load custom profiles (e.g., conservative vs. aggressive).
+> 
+> **6. Visualization Improvements:**  
+> - Add historical price trend charts, neighborhood heat maps, and comparative radar charts to visualize property strengths and weaknesses.
+> - Include a property improvement ROI calculator to estimate value increases and payback periods for various improvements.
+> 
+> **7. API Documentation & Integration:**  
+> - Provide detailed API documentation with examples for each of the new endpoints and features.
+> - Ensure that the enhancements integrate seamlessly with our current DataMartManager module.
+> 
+> **Additional Requirements:**  
+> - Follow best practices for error handling, logging, and security (e.g., JWT authentication where needed).  
+> - Ensure modular, maintainable code with clear comments and documentation.
+> - Include code examples, pseudocode, and a step-by-step implementation plan.
+> 
+> Your deliverable should be a dynamic, actionable roadmap and accompanying code snippets to add these enhancements to our BSValuator™ module. The goal is to create a comprehensive, scalable valuation system that leverages advanced mapping, machine learning, and customizable user options while integrating tightly with our existing DataMartManager.
+
+---
+
+This prompt instructs the AI to incorporate the detailed features—ranging from GIS mapping and ML integration to advanced economic and neighborhood analyses—into the existing DataMartManager codebase. It emphasizes modularity, clear documentation, and robust integration with the rest of our platform.
+
+Does this prompt meet your requirements, or would you like to add or modify any details before using it with Replit’s AI Agent?

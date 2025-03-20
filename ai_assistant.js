@@ -216,6 +216,100 @@ class AIAssistant {
     }
     
     /**
+     * Get contextual tooltip insight for a specific cell value
+     * @param {string} cellType - The type of cell ('assessedValue', 'levyRate', 'deduction', 'basePILT', 'piltDue')
+     * @param {number} value - The value in the cell
+     * @param {Object} districtData - The full data for the district
+     * @param {Array} allData - All PILT data for comparison
+     * @returns {Promise<string>} - The contextual insight for the tooltip
+     */
+    async getContextualTooltip(cellType, value, districtData, allData) {
+        if (!this.apiKey) {
+            throw new Error("API key not set. Please configure your OpenAI API key in Settings.");
+        }
+        
+        // Build context about this value in relation to others
+        const districtName = districtData.district;
+        
+        // Calculate statistics for comparison
+        const allValues = allData.map(d => d[cellType] || 0);
+        const sum = allValues.reduce((a, b) => a + b, 0);
+        const avg = sum / allValues.length;
+        const max = Math.max(...allValues);
+        const min = Math.min(...allValues);
+        
+        // Sort to find rank
+        const sortedValues = [...allValues].sort((a, b) => b - a);
+        const rank = sortedValues.findIndex(v => v === value) + 1;
+        const percentOfTotal = (value / sum * 100).toFixed(2);
+        const percentOfAvg = ((value / avg) * 100 - 100).toFixed(2);
+        
+        // Create descriptive prompt for this particular value
+        let prompt = `
+You are an expert financial analyst specializing in PILT (Payment in Lieu of Taxes) calculations.
+Provide a brief, insightful tooltip (60-80 words maximum) about the following ${cellType} value:
+
+District: ${districtName}
+${cellType}: ${value.toLocaleString('en-US', {maximumFractionDigits: 2})}
+
+Context:
+- This value ranks #${rank} out of ${allData.length} districts
+- It represents ${percentOfTotal}% of the total across all districts
+- It is ${percentOfAvg}% ${value > avg ? 'above' : 'below'} the average
+- The maximum value is ${max.toLocaleString('en-US', {maximumFractionDigits: 2})}
+- The minimum value is ${min.toLocaleString('en-US', {maximumFractionDigits: 2})}
+`;
+
+        // Add specific context based on cell type
+        if (cellType === 'assessedValue') {
+            prompt += `
+For assessed value, explain what this value represents and its significance in the PILT calculation.
+Include insights about how this district's assessed value compares to others.
+`;
+        } else if (cellType === 'levyRate') {
+            prompt += `
+For levy rate, explain what this rate means and how it impacts PILT calculations.
+Mention if this rate is notably high or low compared to other districts.
+`;
+        } else if (cellType === 'deduction') {
+            prompt += `
+For deduction, explain what this amount represents and how it affects the final PILT due.
+Mention if this deduction is proportionally high or low compared to other districts.
+`;
+        } else if (cellType === 'basePILT') {
+            prompt += `
+For base PILT, explain what this figure represents before deductions.
+Include insights about how this value relates to the assessed value and levy rate.
+`;
+        } else if (cellType === 'piltDue') {
+            prompt += `
+For PILT due, explain what this final amount represents and its significance.
+Include insights about the district's overall contribution and any notable patterns.
+`;
+        }
+        
+        prompt += `
+Your tooltip should be concise, informative, and provide valuable context for the user.
+Avoid jargon and focus on insights that would help a financial analyst or county official.
+`;
+        
+        this.addMessage('user', prompt);
+        
+        // Call API with parameters tuned for brief responses
+        const response = await this.callOpenAI(this.messageHistory, {
+            temperature: 0.7,
+            max_tokens: 120,   // Keep tooltips concise
+            top_p: 1,
+            frequency_penalty: 0,
+            presence_penalty: 0
+        });
+        
+        // Store response and return it
+        this.addMessage('assistant', response);
+        return response;
+    }
+    
+    /**
      * Get insights about the current PILT data
      * @param {Array} piltData - The PILT data to analyze
      * @returns {Promise<string>} - The insights text
