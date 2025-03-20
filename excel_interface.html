@@ -335,6 +335,7 @@
             <div class="tabs">
                 <div class="tab active" data-tab="spreadsheet">Spreadsheet View</div>
                 <div class="tab" data-tab="dashboard">Dashboard View</div>
+                <div class="tab" data-tab="ai-insights">AI Insights</div>
                 <div class="tab" data-tab="settings">Settings</div>
             </div>
             
@@ -477,6 +478,82 @@
                 </div>
             </div>
             
+            <div id="ai-insights" class="tab-content">
+                <h2>AI Insights & Assistant</h2>
+                <p>Gain deeper insights into your PILT data with AI-powered analysis.</p>
+                
+                <div class="ai-setup-section" id="ai-setup-section">
+                    <div class="note" style="margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #0077b6; border-radius: 3px;">
+                        <h3 style="margin-top: 0;">Set Up AI Assistant</h3>
+                        <p>To enable AI features, you need to provide an OpenAI API key in the Settings tab.</p>
+                        <p>Once configured, the AI assistant can provide data insights, explain calculations, and suggest what-if scenarios.</p>
+                        <button class="primary-button" id="go-to-settings-btn" style="margin-top: 10px;">Go to Settings</button>
+                    </div>
+                </div>
+                
+                <div class="ai-features" id="ai-features" style="display: none;">
+                    <div class="grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <div class="card" style="padding: 15px; background-color: #f8f9fa; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                            <h3><i class="fas fa-lightbulb"></i> Data Insights</h3>
+                            <p>Get AI-generated insights about your PILT data.</p>
+                            <button id="get-insights-btn" class="primary-button">Generate Insights</button>
+                        </div>
+                        
+                        <div class="card" style="padding: 15px; background-color: #f8f9fa; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                            <h3><i class="fas fa-search"></i> What-If Recommendations</h3>
+                            <p>Get AI suggestions for what-if scenarios to explore.</p>
+                            <button id="get-whatif-btn" class="primary-button">Get Recommendations</button>
+                        </div>
+                        
+                        <div class="card" style="padding: 15px; background-color: #f8f9fa; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                            <h3><i class="fas fa-calculator"></i> Explain Calculations</h3>
+                            <p>Get a clear explanation of PILT calculations for any district.</p>
+                            <select id="district-to-explain" style="width: 100%; margin-bottom: 10px; padding: 5px;">
+                                <option value="">-- Select a district --</option>
+                                <!-- Will be populated by JavaScript -->
+                            </select>
+                            <button id="explain-calc-btn" class="primary-button">Explain Calculation</button>
+                        </div>
+                        
+                        <div class="card" style="padding: 15px; background-color: #f8f9fa; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                            <h3><i class="fas fa-file-alt"></i> Generate Report</h3>
+                            <p>Create a comprehensive summary report of the PILT data.</p>
+                            <button id="generate-report-btn" class="primary-button">Generate Report</button>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-chat-section">
+                        <h3><i class="fas fa-robot"></i> PILT Data Assistant</h3>
+                        <p>Ask questions about your PILT data and get instant answers.</p>
+                        
+                        <div id="ai-chat-messages" style="height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-bottom: 10px; background-color: #fff;">
+                            <div class="ai-message" style="margin-bottom: 10px; padding: 10px; background-color: #f0f7ff; border-radius: 10px;">
+                                <strong>PILT Assistant:</strong> Hello! I'm your PILT data assistant. How can I help you analyze your PILT data today?
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="ai-chat-input" placeholder="Ask a question about your PILT data..." style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <button id="ai-chat-send" class="primary-button">Send</button>
+                        </div>
+                        
+                        <div class="hint" style="margin-top: 10px; font-size: 12px; color: #666;">
+                            Example questions: "Which district has the highest PILT due?", "What's the average levy rate?", "Explain how deductions affect PILT calculations"
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="ai-output" style="margin-top: 20px; padding: 20px; background-color: #fff; border: 1px solid #ddd; border-radius: 5px; display: none;">
+                    <div class="ai-output-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 id="ai-output-title" style="margin: 0;">AI Output</h3>
+                        <button id="close-ai-output" style="background: none; border: none; cursor: pointer; font-size: 16px;">&times;</button>
+                    </div>
+                    <div id="ai-output-content" style="white-space: pre-wrap;">
+                        <!-- AI output will appear here -->
+                    </div>
+                </div>
+            </div>
+            
             <div id="settings" class="tab-content">
                 <h2>Settings</h2>
                 <div class="form-group">
@@ -502,9 +579,18 @@
                     <div class="hint">If disabled, click "Recalculate" button to update PILT values manually.</div>
                 </div>
                 
+                <h3 style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">AI Assistant Settings</h3>
+                <div class="form-group">
+                    <label for="openai-api-key">OpenAI API Key</label>
+                    <input type="password" id="openai-api-key" placeholder="Enter your OpenAI API key">
+                    <div class="hint">Required to enable AI features. Your API key will be stored securely in your browser.</div>
+                </div>
+                <div id="ai-key-status" style="margin-top: 10px; padding: 10px; display: none; border-radius: 3px;"></div>
+                
                 <div class="button-group">
                     <button class="primary-button" id="save-settings">Save Settings</button>
                     <button class="secondary-button" id="reset-settings">Reset to Defaults</button>
+                    <button class="primary-button" id="verify-ai-key" style="background-color: #17a2b8;">Verify AI Key</button>
                 </div>
             </div>
         </div>
@@ -576,6 +662,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="simple_pilt_calculator.js"></script>
+    <script src="ai_assistant.js"></script>
     
     <!-- Main JavaScript -->
     <script>
@@ -1170,9 +1257,22 @@
                 const decimalPlaces = document.getElementById('decimal-places').value;
                 const currencySymbol = document.getElementById('currency-symbol').value;
                 const autoCalculation = document.getElementById('auto-calculation').value === 'true';
+                const apiKey = document.getElementById('openai-api-key').value;
                 
                 // Apply settings
                 // Here we would normally update application settings
+                
+                // Save API key if provided
+                if (apiKey) {
+                    // Store API key securely in localStorage
+                    localStorage.setItem('openai_api_key', apiKey);
+                    
+                    // Update AI assistant
+                    if (window.aiAssistant) {
+                        window.aiAssistant.setApiKey(apiKey);
+                        updateAIFeaturesVisibility();
+                    }
+                }
                 
                 alert('Settings saved successfully.');
             });
@@ -1182,8 +1282,60 @@
                 document.getElementById('decimal-places').value = '2';
                 document.getElementById('currency-symbol').value = '$';
                 document.getElementById('auto-calculation').value = 'true';
+                document.getElementById('openai-api-key').value = '';
+                
+                // Clear API key from storage
+                localStorage.removeItem('openai_api_key');
+                
+                // Update AI assistant
+                if (window.aiAssistant) {
+                    window.aiAssistant.setApiKey(null);
+                    updateAIFeaturesVisibility();
+                }
                 
                 alert('Settings reset to defaults.');
+            });
+            
+            // Verify AI key
+            document.getElementById('verify-ai-key').addEventListener('click', async function() {
+                const apiKey = document.getElementById('openai-api-key').value;
+                const statusElem = document.getElementById('ai-key-status');
+                
+                if (!apiKey) {
+                    statusElem.style.display = 'block';
+                    statusElem.style.backgroundColor = '#f8d7da';
+                    statusElem.style.color = '#721c24';
+                    statusElem.textContent = 'Please enter an API key to verify.';
+                    return;
+                }
+                
+                statusElem.style.display = 'block';
+                statusElem.style.backgroundColor = '#fff3cd';
+                statusElem.style.color = '#856404';
+                statusElem.textContent = 'Verifying API key...';
+                
+                try {
+                    // Set the API key
+                    window.aiAssistant.setApiKey(apiKey);
+                    
+                    // Test a simple request
+                    const response = await window.aiAssistant.chat('Hello, this is a test message to verify the API key.');
+                    
+                    // If we got here, the key is valid
+                    statusElem.style.backgroundColor = '#d4edda';
+                    statusElem.style.color = '#155724';
+                    statusElem.textContent = 'API key verified successfully!';
+                    
+                    // Save the key to localStorage
+                    localStorage.setItem('openai_api_key', apiKey);
+                    
+                    // Update UI
+                    updateAIFeaturesVisibility();
+                } catch (error) {
+                    statusElem.style.backgroundColor = '#f8d7da';
+                    statusElem.style.color = '#721c24';
+                    statusElem.textContent = `API key verification failed: ${error.message}`;
+                }
             });
             
             // New spreadsheet button functionality
@@ -1203,6 +1355,204 @@
             document.querySelector('.tab[data-tab="dashboard"]').addEventListener('click', function() {
                 setTimeout(generateChart, 0);
             });
+            
+            // AI Features Functionality
+            
+            // Function to check if AI features should be shown
+            function updateAIFeaturesVisibility() {
+                const apiKey = localStorage.getItem('openai_api_key');
+                const setupSection = document.getElementById('ai-setup-section');
+                const featuresSection = document.getElementById('ai-features');
+                
+                if (apiKey && window.aiAssistant) {
+                    window.aiAssistant.setApiKey(apiKey);
+                    setupSection.style.display = 'none';
+                    featuresSection.style.display = 'block';
+                    
+                    // Update API key field in settings
+                    const apiKeyField = document.getElementById('openai-api-key');
+                    if (apiKeyField.value === '') {
+                        apiKeyField.value = apiKey;
+                    }
+                    
+                    // Populate district dropdown for explanation
+                    const districtSelect = document.getElementById('district-to-explain');
+                    districtSelect.innerHTML = '<option value="">-- Select a district --</option>';
+                    
+                    piltResults.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.district;
+                        option.textContent = district.district;
+                        districtSelect.appendChild(option);
+                    });
+                } else {
+                    setupSection.style.display = 'block';
+                    featuresSection.style.display = 'none';
+                }
+            }
+            
+            // Show AI output function
+            function showAIOutput(title, content) {
+                const outputDiv = document.getElementById('ai-output');
+                const titleElem = document.getElementById('ai-output-title');
+                const contentElem = document.getElementById('ai-output-content');
+                
+                titleElem.textContent = title;
+                contentElem.textContent = content;
+                outputDiv.style.display = 'block';
+                
+                // Scroll to the output
+                outputDiv.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Add AI chat message
+            function addChatMessage(role, content) {
+                const messagesDiv = document.getElementById('ai-chat-messages');
+                const messageElem = document.createElement('div');
+                
+                messageElem.className = role === 'user' ? 'user-message' : 'ai-message';
+                messageElem.style.marginBottom = '10px';
+                messageElem.style.padding = '10px';
+                messageElem.style.borderRadius = '10px';
+                
+                if (role === 'user') {
+                    messageElem.style.backgroundColor = '#e9f5ff';
+                    messageElem.style.marginLeft = '20px';
+                    messageElem.style.textAlign = 'right';
+                } else {
+                    messageElem.style.backgroundColor = '#f0f7ff';
+                }
+                
+                const sender = role === 'user' ? 'You' : 'PILT Assistant';
+                messageElem.innerHTML = `<strong>${sender}:</strong> ${content}`;
+                
+                messagesDiv.appendChild(messageElem);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+            
+            // Generate insights button
+            document.getElementById('get-insights-btn').addEventListener('click', async function() {
+                this.disabled = true;
+                this.textContent = 'Generating...';
+                
+                try {
+                    const insights = await window.aiAssistant.getDataInsights(piltResults);
+                    showAIOutput('Data Insights', insights);
+                } catch (error) {
+                    showAIOutput('Error', `Failed to generate insights: ${error.message}`);
+                } finally {
+                    this.disabled = false;
+                    this.textContent = 'Generate Insights';
+                }
+            });
+            
+            // Get what-if recommendations button
+            document.getElementById('get-whatif-btn').addEventListener('click', async function() {
+                this.disabled = true;
+                this.textContent = 'Generating...';
+                
+                try {
+                    const recommendations = await window.aiAssistant.getWhatIfRecommendations(piltResults);
+                    showAIOutput('What-If Recommendations', recommendations);
+                } catch (error) {
+                    showAIOutput('Error', `Failed to generate recommendations: ${error.message}`);
+                } finally {
+                    this.disabled = false;
+                    this.textContent = 'Get Recommendations';
+                }
+            });
+            
+            // Explain calculation button
+            document.getElementById('explain-calc-btn').addEventListener('click', async function() {
+                const districtName = document.getElementById('district-to-explain').value;
+                
+                if (!districtName) {
+                    alert('Please select a district to explain.');
+                    return;
+                }
+                
+                this.disabled = true;
+                this.textContent = 'Generating...';
+                
+                try {
+                    const district = piltResults.find(d => d.district === districtName);
+                    const explanation = await window.aiAssistant.explainCalculation(district);
+                    showAIOutput(`PILT Calculation for ${districtName}`, explanation);
+                } catch (error) {
+                    showAIOutput('Error', `Failed to generate explanation: ${error.message}`);
+                } finally {
+                    this.disabled = false;
+                    this.textContent = 'Explain Calculation';
+                }
+            });
+            
+            // Generate report button
+            document.getElementById('generate-report-btn').addEventListener('click', async function() {
+                this.disabled = true;
+                this.textContent = 'Generating...';
+                
+                try {
+                    const report = await window.aiAssistant.generateSummaryReport(piltResults);
+                    showAIOutput('PILT Summary Report', report);
+                } catch (error) {
+                    showAIOutput('Error', `Failed to generate report: ${error.message}`);
+                } finally {
+                    this.disabled = false;
+                    this.textContent = 'Generate Report';
+                }
+            });
+            
+            // Close AI output button
+            document.getElementById('close-ai-output').addEventListener('click', function() {
+                document.getElementById('ai-output').style.display = 'none';
+            });
+            
+            // Send AI chat message
+            document.getElementById('ai-chat-send').addEventListener('click', async function() {
+                const input = document.getElementById('ai-chat-input');
+                const message = input.value.trim();
+                
+                if (!message) return;
+                
+                // Add user message to chat
+                addChatMessage('user', message);
+                input.value = '';
+                
+                // Disable input during processing
+                input.disabled = true;
+                this.disabled = true;
+                
+                try {
+                    // Get AI response
+                    const response = await window.aiAssistant.chat(message, piltResults);
+                    
+                    // Add AI response to chat
+                    addChatMessage('assistant', response);
+                } catch (error) {
+                    addChatMessage('assistant', `Sorry, I encountered an error: ${error.message}`);
+                } finally {
+                    // Re-enable input
+                    input.disabled = false;
+                    this.disabled = false;
+                    input.focus();
+                }
+            });
+            
+            // Handle Enter key in chat input
+            document.getElementById('ai-chat-input').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    document.getElementById('ai-chat-send').click();
+                }
+            });
+            
+            // Go to settings button
+            document.getElementById('go-to-settings-btn').addEventListener('click', function() {
+                document.querySelector('.tab[data-tab="settings"]').click();
+            });
+            
+            // Initialize AI features
+            updateAIFeaturesVisibility();
         });
     </script>
 </body>
