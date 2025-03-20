@@ -345,6 +345,7 @@
                         <button id="new-btn" title="New Sheet"><i class="fas fa-file"></i></button>
                         <button id="open-btn" title="Open File"><i class="fas fa-folder-open"></i></button>
                         <button id="save-btn" title="Save"><i class="fas fa-save"></i></button>
+                        <button id="load-sample-btn" title="Load Sample Data" style="background-color: #eaf4ff;"><i class="fas fa-vial"></i></button>
                     </div>
                     
                     <div class="toolbar-separator"></div>
@@ -1345,6 +1346,93 @@
                     hot.loadData([]);
                     updateGridInfo();
                     updateSummaryPanels();
+                }
+            });
+            
+            // Load sample data button functionality
+            document.getElementById('load-sample-btn').addEventListener('click', function() {
+                if (confirm('Load sample PILT data? This will replace any existing data.')) {
+                    // Sample PILT data for demonstration
+                    const sampleData = [
+                        {
+                            district: "School District #1",
+                            assessedValue: 28500000,
+                            levyRate: 0.003142,
+                            basePILT: 0,  // Will be calculated
+                            deduction: 12500,
+                            piltDue: 0   // Will be calculated
+                        },
+                        {
+                            district: "County Fire District",
+                            assessedValue: 32750000,
+                            levyRate: 0.002875,
+                            basePILT: 0,  // Will be calculated
+                            deduction: 15750,
+                            piltDue: 0   // Will be calculated
+                        },
+                        {
+                            district: "City of Riverside",
+                            assessedValue: 45125000,
+                            levyRate: 0.004250,
+                            basePILT: 0,  // Will be calculated
+                            deduction: 22000,
+                            piltDue: 0   // Will be calculated
+                        },
+                        {
+                            district: "Parks & Recreation",
+                            assessedValue: 19800000,
+                            levyRate: 0.001725,
+                            basePILT: 0,  // Will be calculated
+                            deduction: 8900,
+                            piltDue: 0   // Will be calculated
+                        },
+                        {
+                            district: "Water Conservation District",
+                            assessedValue: 36250000,
+                            levyRate: 0.001950,
+                            basePILT: 0,  // Will be calculated
+                            deduction: 10500,
+                            piltDue: 0   // Will be calculated
+                        },
+                        {
+                            district: "Community Hospital District",
+                            assessedValue: 52180000,
+                            levyRate: 0.003875,
+                            basePILT: 0,  // Will be calculated
+                            deduction: 30000,
+                            piltDue: 0   // Will be calculated
+                        },
+                        {
+                            district: "Rural Library District",
+                            assessedValue: 15750000,
+                            levyRate: 0.001550,
+                            basePILT: 0,  // Will be calculated
+                            deduction: 5800,
+                            piltDue: 0   // Will be calculated
+                        }
+                    ];
+                    
+                    // Load data into grid
+                    hot.loadData(sampleData);
+                    
+                    // Recalculate PILT values
+                    recalculatePILT();
+                    
+                    // Update UI
+                    updateGridInfo();
+                    
+                    // Populate district selector for AI explanations
+                    const districtSelector = document.getElementById('district-to-explain');
+                    districtSelector.innerHTML = '<option value="">-- Select a district --</option>';
+                    sampleData.forEach((district, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = district.district;
+                        districtSelector.appendChild(option);
+                    });
+                    
+                    // Show success message
+                    alert('Sample PILT data loaded successfully. You can now explore the AI features in the AI Insights tab!');
                 }
             });
             
