@@ -123,26 +123,49 @@ Total PILT Due: $${totalPILTDue.toLocaleString('en-US', {maximumFractionDigits: 
         // Format data for analysis
         const dataText = this.formatDataForAnalysis(piltData);
         
-        // Create prompt
+        // Create prompt with advanced data analysis directives
         const prompt = `
-Analyze the following PILT (Payment in Lieu of Taxes) data and provide meaningful insights:
+Analyze the following PILT (Payment in Lieu of Taxes) data with exceptional depth and precision:
 
 ${dataText}
 
-Please provide insights including:
-1. Districts with highest and lowest PILT due
-2. Analysis of levy rates across districts
-3. Impact of deductions on final PILT amounts
-4. Any anomalies or interesting patterns in the data
-5. Distribution of tax burden across districts
+Generate a comprehensive analysis that delivers transformative insights:
 
-Make your insights clear, concise, and meaningful for financial planning.
+1. DISTRICT PERFORMANCE ANALYSIS
+   - Identify top and bottom performing districts with exact figures and percentages
+   - Calculate precise variance from district averages
+   - Highlight specific outliers that require immediate attention
+
+2. LEVY RATE OPTIMIZATION
+   - Perform statistical analysis of current levy rate distribution
+   - Identify potential rate adjustments to maximize revenue without creating disproportionate burden
+   - Calculate the exact revenue impact of standardizing rates across similar districts
+
+3. DEDUCTION EFFICIENCY ASSESSMENT
+   - Quantify the exact impact of deductions on final PILT amounts
+   - Identify districts where deduction ratios are non-standard
+   - Calculate potential revenue adjustments from optimizing deduction policies
+
+4. PATTERN RECOGNITION
+   - Identify hidden correlations between district characteristics and PILT metrics
+   - Detect any anomalies that suggest data inconsistencies or policy exceptions
+   - Flag potential opportunities for strategic adjustments
+
+5. REVENUE DISTRIBUTION MAPPING
+   - Calculate precise distribution of tax burden across district types
+   - Identify any imbalances in contribution versus benefit ratios
+   - Suggest specific redistributions to achieve optimal revenue balance
+
+Format your response with crystal-clear section headers, precise figures, and actionable strategic recommendations. Your insights should deliver immediate value for financial decision-makers.
 `;
         
         this.addMessage('user', prompt);
         
-        // Call API
-        const response = await this.callOpenAI(this.messageHistory);
+        // Call API with enhanced parameters
+        const response = await this.callOpenAI(this.messageHistory, {
+            temperature: 0.5,  // More consistent, precise outputs
+            max_tokens: 1200   // Allow for more detailed analysis
+        });
         
         // Store response
         this.addMessage('assistant', response);
@@ -163,24 +186,54 @@ Make your insights clear, concise, and meaningful for financial planning.
         // Format data for analysis
         const dataText = this.formatDataForAnalysis(piltData);
         
-        // Create prompt
+        // Create advanced strategic prompt
         const prompt = `
-Based on the following PILT (Payment in Lieu of Taxes) data, suggest 3-5 "what-if" scenarios that would be valuable to analyze:
+Perform an advanced strategic analysis of the following PILT (Payment in Lieu of Taxes) data and develop high-impact "what-if" scenarios that could transform revenue optimization:
 
 ${dataText}
 
-For each scenario:
-1. Describe the specific parameter changes (e.g., increase levy rate by X% for specific districts)
-2. Explain why analyzing this scenario would be valuable
-3. Predict the potential impact on total PILT revenue
+Create 5 precision-engineered scenario models with exact parameters:
 
-Make your suggestions practical and relevant for financial planning and policy decisions.
+SCENARIO 1: LEVY RATE OPTIMIZATION MODEL
+- Specify exact percentage adjustments for each district category 
+- Calculate precise revenue impact figures with confidence intervals
+- Provide implementation timeline with specific milestones
+- Include risk assessment with mitigation strategies
+
+SCENARIO 2: STRATEGIC DEDUCTION RECALIBRATION
+- Identify specific deduction thresholds to optimize revenue
+- Quantify exact financial impact by district type
+- Outline legal/policy considerations with actionable steps
+- Provide phased implementation approach with specific targets
+
+SCENARIO 3: DISTRICT CONSOLIDATION ANALYSIS
+- Identify optimal district groupings based on statistical similarities
+- Calculate administrative efficiency gains with exact figures
+- Project precise revenue changes under consolidated approach
+- Outline governance implications with specific recommendations
+
+SCENARIO 4: PROGRESSIVE RATE STRUCTURE MODEL
+- Design tiered levy rate structure with specific thresholds and rates
+- Calculate redistribution impact with precise equity metrics
+- Quantify exact revenue changes by district category
+- Include transitional implementation framework with timeline
+
+SCENARIO 5: FUTURE-FOCUSED GROWTH PROJECTION
+- Model specific growth rates for assessed values by district type
+- Project PILT revenue changes over 5-year horizon with confidence intervals
+- Identify key trigger points requiring policy adjustments
+- Outline monitoring framework with specific metrics and thresholds
+
+For each scenario, provide exact parameter values, calculations, expected outcomes, implementation considerations, and strategic rationale. Your analysis should be data-driven, immediately actionable, and transformative for financial planning.
 `;
         
         this.addMessage('user', prompt);
         
-        // Call API
-        const response = await this.callOpenAI(this.messageHistory);
+        // Call API with enhanced parameters
+        const response = await this.callOpenAI(this.messageHistory, {
+            temperature: 0.4,  // Higher precision for financial projections
+            max_tokens: 1500   // Allow for comprehensive scenario details
+        });
         
         // Store response
         this.addMessage('assistant', response);
@@ -202,9 +255,9 @@ Make your suggestions practical and relevant for financial planning and policy d
             throw new Error("No district data provided.");
         }
         
-        // Create prompt
+        // Create enhanced interactive learning prompt
         const prompt = `
-Explain the PILT calculation for the following district in simple, clear terms:
+Create a crystal-clear, accessible explanation of the PILT calculation for the following district:
 
 District: ${district.district}
 Assessed Value: $${(district.assessedValue || 0).toLocaleString('en-US', {maximumFractionDigits: 2})}
@@ -213,13 +266,38 @@ Base PILT: $${(district.basePILT || 0).toLocaleString('en-US', {maximumFractionD
 Deduction: $${(district.deduction || 0).toLocaleString('en-US', {maximumFractionDigits: 2})}
 PILT Due: $${(district.piltDue || 0).toLocaleString('en-US', {maximumFractionDigits: 2})}
 
-Show the step-by-step calculation and explain each component in terms that a non-technical person would understand. Include a brief explanation of what PILT is and why it matters.
+Your explanation should be both intuitive for newcomers and valuable for professionals:
+
+1. START WITH A CLEAR DEFINITION
+   - Explain what PILT is in plain language
+   - Why this payment exists and who it benefits
+   - Real-world context for its importance
+
+2. VISUAL CALCULATION BREAKDOWN
+   - Show each step as a simple formula with the actual numbers
+   - Use visual formatting (e.g., Step 1: ✓) to make steps easy to follow
+   - Highlight each component's purpose in the overall calculation
+
+3. CONTEXTUAL INSIGHTS
+   - Compare this district's figures to typical values
+   - Explain what makes this district's calculation unique
+   - Provide perspective on whether the final amount is typical/atypical
+
+4. PRACTICAL IMPLICATIONS
+   - Explain what this PILT payment means for the district
+   - How changes to each parameter would affect the outcome
+   - What stakeholders should understand about this payment
+
+Format your response with clear sections, helpful visual structure, and language that balances simplicity with precision. Use bullet points, spacing, and formatting to enhance clarity.
 `;
         
         this.addMessage('user', prompt);
         
-        // Call API
-        const response = await this.callOpenAI(this.messageHistory);
+        // Call API with enhanced parameters
+        const response = await this.callOpenAI(this.messageHistory, {
+            temperature: 0.5,  // Balance creativity with precision
+            max_tokens: 1200   // Allow for comprehensive, well-formatted explanation
+        });
         
         // Store response
         this.addMessage('assistant', response);
@@ -238,20 +316,52 @@ Show the step-by-step calculation and explain each component in terms that a non
             throw new Error("API key not set. Please configure your OpenAI API key in Settings.");
         }
         
-        // If we have PILT data, add it as context
-        if (piltData && piltData.length > 0) {
-            // Only add data if the message history is short
-            if (this.messageHistory.length <= 3) {
+        // If this is the first few messages, set advanced system instructions
+        if (this.messageHistory.length <= 3 || this.messageHistory.every(msg => msg.role !== 'system')) {
+            // Remove any existing system messages
+            this.messageHistory = this.messageHistory.filter(msg => msg.role !== 'system');
+            
+            // Add enhanced system message with PILT expertise
+            this.addMessage('system', `You are an expert PILT financial analyst and advisor with decades of experience in municipal finance.
+Your responses should demonstrate exceptional expertise, insight, and strategic thinking about PILT data.
+
+Communication Guidelines:
+- Be concise yet comprehensive - every word should deliver value
+- Use precise, quantified statements rather than generalizations
+- Structure complex answers with clear formatting (headers, bullet points)
+- Tailor explanations to both strategic and operational perspectives
+- Connect insights to actionable recommendations
+- Use financial and policy terminology accurately and appropriately
+
+When analyzing PILT data, always consider:
+- Revenue optimization opportunities without compromising equity
+- District-specific context and unique circumstances
+- Historical trends and future projections
+- Regulatory and policy implications
+- Strategic financial impact on municipal operations
+
+Respond with confidence, authority, and a focus on delivering transformative insights.`);
+            
+            // If we have PILT data, add it as enhanced context
+            if (piltData && piltData.length > 0) {
                 const dataText = this.formatDataForAnalysis(piltData);
-                this.addMessage('system', `Current PILT data:\n${dataText}`);
+                this.addMessage('system', `Current PILT data for your analysis:\n${dataText}
+
+Please use this exact data when providing calculations or specific figures in your responses.
+When making comparisons, ensure you're using the precise values from this dataset.`);
             }
         }
         
         // Add user message
         this.addMessage('user', userMessage);
         
-        // Call API
-        const response = await this.callOpenAI(this.messageHistory);
+        // Call API with enhanced conversation parameters
+        const response = await this.callOpenAI(this.messageHistory, {
+            temperature: 0.6,     // Balance precision with conversational tone
+            max_tokens: 1200,     // Allow for detailed responses
+            presence_penalty: 0.2, // Encourage addressing new aspects of questions
+            frequency_penalty: 0.2 // Discourage repetitive phrasing
+        });
         
         // Store response
         this.addMessage('assistant', response);
@@ -272,27 +382,62 @@ Show the step-by-step calculation and explain each component in terms that a non
         // Format data for analysis
         const dataText = this.formatDataForAnalysis(piltData);
         
-        // Create prompt
+        // Create enhanced executive report prompt
         const prompt = `
-Generate a comprehensive summary report for the following PILT (Payment in Lieu of Taxes) data:
+Create an executive-grade analytical report based on the following PILT (Payment in Lieu of Taxes) data:
 
 ${dataText}
 
-Your report should include:
-1. Executive Summary - Key figures and highlights
-2. District-by-District Analysis - Brief assessment of each district's contribution
-3. Financial Impact Analysis - How PILT payments affect the county budget
-4. Distribution Analysis - How the tax burden is distributed
-5. Comparison to Previous Periods (if data available) or to average values
-6. Recommendations - Based on the data, what recommendations would you make
+Develop a premium-quality report with these precise components:
 
-Format the report in a professional, clear manner suitable for presentation to county officials.
+SECTION 1: EXECUTIVE DASHBOARD
+- Produce exact KPIs with YTD performance metrics
+- Generate concise highlights using quantified metrics
+- Include critical alerts for immediate attention
+- Provide strategic snapshot with actionable intelligence
+
+SECTION 2: DISTRICT PERFORMANCE MATRIX
+- Conduct quantitative assessment of each district's contribution with precise metrics
+- Identify specific performance trends with statistical validation
+- Flag outliers with exact variance percentages
+- Rank districts by multiple performance indicators with weighted scoring
+
+SECTION 3: FINANCIAL IMPACT ANALYSIS
+- Calculate exact revenue implications with confidence intervals
+- Model precise cash flow impact on county operations
+- Quantify benefit distribution with demographic overlays
+- Forecast detailed revenue stability with multi-factor analysis
+
+SECTION 4: EQUITY & DISTRIBUTION ASSESSMENT
+- Map precise tax burden distribution using multiple equity metrics
+- Identify specific districts with non-standard contribution ratios
+- Calculate exact fairness indices across district types
+- Provide statistical analysis of burden-to-benefit ratios
+
+SECTION 5: COMPARATIVE BENCHMARKING
+- Generate detailed trend analysis with multi-year projections
+- Compare performance against similar county benchmarks (simulated if needed)
+- Identify specific divergence from optimal performance models
+- Calculate precise performance gaps with targeted closure strategies
+
+SECTION 6: STRATEGIC RECOMMENDATIONS
+- Provide actionable, high-impact recommendations with implementation timelines
+- Quantify expected outcomes for each recommendation
+- Identify specific policy adjustments with projected revenue impacts
+- Outline multi-phase optimization strategy with measurable milestones
+
+Format this report with professional-grade formatting, precise data visualizations, and executive-focused insights. This should be a decision-ready document that balances analytical depth with strategic clarity.
 `;
         
         this.addMessage('user', prompt);
         
-        // Call API
-        const response = await this.callOpenAI(this.messageHistory);
+        // Call API with enhanced parameters for executive report
+        const response = await this.callOpenAI(this.messageHistory, {
+            temperature: 0.4,     // Higher precision for formal reports
+            max_tokens: 2000,     // Allow for comprehensive detailed report
+            presence_penalty: 0.1, // Slight enhancement of diverse content
+            frequency_penalty: 0.1 // Slight enhancement of vocabulary diversity
+        });
         
         // Store response
         this.addMessage('assistant', response);
@@ -303,12 +448,24 @@ Format the report in a professional, clear manner suitable for presentation to c
     /**
      * Call the OpenAI API
      * @param {Array} messages - The messages to send
+     * @param {Object} options - Additional options for the API call
      * @returns {Promise<string>} - The text response
      */
-    async callOpenAI(messages) {
+    async callOpenAI(messages, options = {}) {
         if (!this.apiKey) {
             throw new Error("API key not set. Please configure your OpenAI API key in Settings.");
         }
+        
+        // Default parameters that can be overridden by options
+        const params = {
+            model: options.model || 'gpt-3.5-turbo',
+            messages: messages,
+            temperature: options.temperature !== undefined ? options.temperature : 0.7,
+            max_tokens: options.max_tokens || 1000,
+            top_p: options.top_p || 1,
+            presence_penalty: options.presence_penalty || 0,
+            frequency_penalty: options.frequency_penalty || 0
+        };
         
         try {
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -317,12 +474,7 @@ Format the report in a professional, clear manner suitable for presentation to c
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${this.apiKey}`
                 },
-                body: JSON.stringify({
-                    model: 'gpt-3.5-turbo',
-                    messages: messages,
-                    temperature: 0.7,
-                    max_tokens: 1000
-                })
+                body: JSON.stringify(params)
             });
             
             if (!response.ok) {
