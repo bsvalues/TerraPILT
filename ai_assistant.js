@@ -70,8 +70,15 @@ class AIAssistant {
      */
     formatDataForAnalysis(piltData) {
         if (!piltData || piltData.length === 0) {
-            return "No PILT data available.";
+            return "No PILT data available for analysis.";
         }
+        
+        let dataText = "PILT DATA ANALYSIS FRAMEWORK\n";
+        dataText += "================================\n\n";
+        
+        // Add data for each district with enhanced structure
+        dataText += "DISTRICT-LEVEL METRICS\n";
+        dataText += "---------------------\n\n";
         
         let totalAssessedValue = 0;
         let totalBasePILT = 0;
@@ -79,35 +86,133 @@ class AIAssistant {
         let totalPILTDue = 0;
         let avgLevyRate = 0;
         
-        const dataText = piltData.map(district => {
+        // First pass to calculate totals for later use
+        piltData.forEach(district => {
             totalAssessedValue += district.assessedValue || 0;
             totalBasePILT += district.basePILT || 0;
             totalDeduction += district.deduction || 0;
             totalPILTDue += district.piltDue || 0;
             avgLevyRate += district.levyRate || 0;
-            
-            return `District: ${district.district}
-Assessed Value: $${(district.assessedValue || 0).toLocaleString('en-US', {maximumFractionDigits: 2})}
-Levy Rate: ${(district.levyRate || 0).toFixed(6)}
-Base PILT: $${(district.basePILT || 0).toLocaleString('en-US', {maximumFractionDigits: 2})}
-Deduction: $${(district.deduction || 0).toLocaleString('en-US', {maximumFractionDigits: 2})}
-PILT Due: $${(district.piltDue || 0).toLocaleString('en-US', {maximumFractionDigits: 2})}
-`;
-        }).join('\n');
+        });
         
         avgLevyRate = avgLevyRate / piltData.length;
         
-        const summary = `
-Summary:
-Total Districts: ${piltData.length}
-Total Assessed Value: $${totalAssessedValue.toLocaleString('en-US', {maximumFractionDigits: 2})}
-Average Levy Rate: ${avgLevyRate.toFixed(6)}
-Total Base PILT: $${totalBasePILT.toLocaleString('en-US', {maximumFractionDigits: 2})}
-Total Deductions: $${totalDeduction.toLocaleString('en-US', {maximumFractionDigits: 2})}
-Total PILT Due: $${totalPILTDue.toLocaleString('en-US', {maximumFractionDigits: 2})}
-`;
+        // Create sorted copies for analysis
+        const sortedByValue = [...piltData].sort((a, b) => (b.assessedValue || 0) - (a.assessedValue || 0));
+        const sortedByPILT = [...piltData].sort((a, b) => (b.piltDue || 0) - (a.piltDue || 0));
+        const sortedByRate = [...piltData].sort((a, b) => (b.levyRate || 0) - (a.levyRate || 0));
         
-        return dataText + summary;
+        // Second pass to display districts with richer context
+        piltData.forEach((district, index) => {
+            // Calculate derived metrics
+            const effectiveRate = district.piltDue / district.assessedValue;
+            const deductionPercent = district.deduction / district.basePILT * 100;
+            
+            // Determine rankings (position in sorted arrays)
+            const valueRank = sortedByValue.findIndex(d => d === district) + 1;
+            const piltRank = sortedByPILT.findIndex(d => d === district) + 1;
+            const rateRank = sortedByRate.findIndex(d => d === district) + 1;
+            
+            // Calculate percentages of total
+            const pctOfTotalValue = (district.assessedValue / totalAssessedValue * 100);
+            const pctOfTotalPILT = (district.piltDue / totalPILTDue * 100);
+            
+            dataText += `DISTRICT ID: ${district.district || 'Unknown'}\n`;
+            dataText += `• Assessed Value: $${(district.assessedValue || 0).toLocaleString('en-US', {maximumFractionDigits: 2})} (${pctOfTotalValue.toFixed(2)}% of total, rank #${valueRank})\n`;
+            dataText += `• Levy Rate: ${(district.levyRate || 0).toFixed(6)} (${((district.levyRate / avgLevyRate) * 100 - 100).toFixed(2)}% vs avg, rank #${rateRank})\n`;
+            dataText += `• Base PILT: $${(district.basePILT || 0).toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+            dataText += `• Deduction: $${(district.deduction || 0).toLocaleString('en-US', {maximumFractionDigits: 2})} (${deductionPercent.toFixed(2)}% of base)\n`;
+            dataText += `• PILT Due: $${(district.piltDue || 0).toLocaleString('en-US', {maximumFractionDigits: 2})} (${pctOfTotalPILT.toFixed(2)}% of total, rank #${piltRank})\n`;
+            dataText += `• Effective Rate: ${effectiveRate.toFixed(6)}\n`;
+            
+            // Add separator between districts
+            if (index < piltData.length - 1) {
+                dataText += "\n";
+            }
+        });
+        
+        // Add aggregated summary metrics
+        dataText += "\n\nAGGREGATE FINANCIAL METRICS\n";
+        dataText += "--------------------------\n";
+        dataText += `• Total Districts: ${piltData.length}\n`;
+        dataText += `• Total Assessed Value: $${totalAssessedValue.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        dataText += `• Total Base PILT: $${totalBasePILT.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        dataText += `• Total Deductions: $${totalDeduction.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        dataText += `• Total PILT Due: $${totalPILTDue.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        dataText += `• Effective Deduction Rate: ${(totalDeduction / totalBasePILT * 100).toFixed(2)}%\n`;
+        dataText += `• Average Levy Rate: ${avgLevyRate.toFixed(6)}\n`;
+        dataText += `• PILT Capture Rate: ${(totalPILTDue / totalAssessedValue * 100).toFixed(4)}%\n`;
+        
+        // Add top district analysis
+        dataText += "\n\nTOP DISTRICT RANKINGS\n";
+        dataText += "--------------------\n";
+        
+        // Top by assessed value
+        dataText += "Highest Assessed Value Districts:\n";
+        for (let i = 0; i < Math.min(3, sortedByValue.length); i++) {
+            const district = sortedByValue[i];
+            const percentOfTotal = (district.assessedValue / totalAssessedValue * 100).toFixed(2);
+            dataText += `${i+1}. ${district.district}: $${district.assessedValue.toLocaleString('en-US', {maximumFractionDigits: 2})} (${percentOfTotal}% of total)\n`;
+        }
+        
+        // Top by PILT due
+        dataText += "\nHighest PILT Due Districts:\n";
+        for (let i = 0; i < Math.min(3, sortedByPILT.length); i++) {
+            const district = sortedByPILT[i];
+            const percentOfTotal = (district.piltDue / totalPILTDue * 100).toFixed(2);
+            dataText += `${i+1}. ${district.district}: $${district.piltDue.toLocaleString('en-US', {maximumFractionDigits: 2})} (${percentOfTotal}% of total)\n`;
+        }
+        
+        // Top by levy rate
+        dataText += "\nHighest Levy Rate Districts:\n";
+        for (let i = 0; i < Math.min(3, sortedByRate.length); i++) {
+            const district = sortedByRate[i];
+            const percentAboveAvg = ((district.levyRate / avgLevyRate - 1) * 100).toFixed(2);
+            dataText += `${i+1}. ${district.district}: ${district.levyRate.toFixed(6)} (${percentAboveAvg}% above average)\n`;
+        }
+        
+        // Calculate quartiles for distribution analysis
+        function calculateQuartiles(values) {
+            const sorted = [...values].sort((a, b) => a - b);
+            const len = sorted.length;
+            
+            if (len === 0) return { min: 0, q1: 0, median: 0, q3: 0, max: 0 };
+            
+            // Calculate quartile indices
+            const q1Index = Math.floor(len * 0.25);
+            const medianIndex = Math.floor(len * 0.5);
+            const q3Index = Math.floor(len * 0.75);
+            
+            return {
+                min: sorted[0] || 0,
+                q1: sorted[q1Index] || 0,
+                median: sorted[medianIndex] || 0,
+                q3: sorted[q3Index] || 0,
+                max: sorted[len - 1] || 0
+            };
+        }
+        
+        // Distribution analysis
+        const assessedValueQuartiles = calculateQuartiles(piltData.map(d => d.assessedValue || 0));
+        const piltDueQuartiles = calculateQuartiles(piltData.map(d => d.piltDue || 0));
+        
+        dataText += "\n\nDISTRIBUTION ANALYSIS\n";
+        dataText += "--------------------\n";
+        dataText += "Assessed Value Distribution:\n";
+        dataText += `• Minimum: $${assessedValueQuartiles.min.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        dataText += `• 25th Percentile: $${assessedValueQuartiles.q1.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        dataText += `• Median: $${assessedValueQuartiles.median.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        dataText += `• 75th Percentile: $${assessedValueQuartiles.q3.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        dataText += `• Maximum: $${assessedValueQuartiles.max.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        
+        dataText += "\nPILT Due Distribution:\n";
+        dataText += `• Minimum: $${piltDueQuartiles.min.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        dataText += `• 25th Percentile: $${piltDueQuartiles.q1.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        dataText += `• Median: $${piltDueQuartiles.median.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        dataText += `• 75th Percentile: $${piltDueQuartiles.q3.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        dataText += `• Maximum: $${piltDueQuartiles.max.toLocaleString('en-US', {maximumFractionDigits: 2})}\n`;
+        
+        return dataText;
     }
     
     /**
