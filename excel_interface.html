@@ -397,6 +397,120 @@
             to { transform: rotate(360deg); }
         }
         
+        /* Mobile-specific styles */
+        .mobile-device .toolbar {
+            padding: 8px 5px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .mobile-device .toolbar button {
+            margin: 4px 2px;
+        }
+        
+        .mobile-device .toolbar-group {
+            margin-bottom: 5px;
+        }
+        
+        .mobile-device #formula-input {
+            font-size: 14px;
+            padding: 8px 5px;
+        }
+        
+        .mobile-device .summary-panel {
+            padding: 10px;
+        }
+        
+        .mobile-device .tabs {
+            justify-content: flex-start;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+        
+        .mobile-device .tabs::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+        
+        .mobile-device .tab {
+            flex-shrink: 0;
+        }
+        
+        .mobile-device #grid-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .mobile-device .handsontable {
+            font-size: 13px;
+        }
+        
+        .mobile-device .ai-panel {
+            flex-direction: column;
+        }
+        
+        .mobile-device .ai-sidebar {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .mobile-device .ai-content {
+            width: 100%;
+        }
+        
+        .mobile-device .ai-chat-messages {
+            max-height: 250px;
+        }
+        
+        .mobile-device .tooltip-text {
+            max-width: 200px;
+        }
+        
+        .mobile-device .modal-content {
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .mobile-device .template-tabs {
+            flex-direction: column;
+        }
+        
+        .mobile-device header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .mobile-device header p {
+            font-size: 0.9rem;
+        }
+        
+        /* Mobile touch states */
+        .touch-active {
+            background-color: rgba(0, 119, 182, 0.2) !important;
+        }
+        
+        .mobile-device button:active, 
+        .mobile-device .tab:active {
+            transform: scale(0.98);
+            transition: transform 0.1s;
+        }
+        
+        /* Enhanced tap targets for mobile */
+        .mobile-device .toolbar button, 
+        .mobile-device .tab {
+            min-height: 44px; /* Apple's recommended min tap target size */
+        }
+        
+        /* Mobile grid optimizations */
+        .mobile-device .wtHolder {
+            font-size: 14px;
+        }
+        
+        .mobile-device .file-upload-container {
+            flex-direction: column;
+        }
+        
         .pulse {
             animation: pulse 0.5s ease-in-out;
         }
@@ -2922,6 +3036,25 @@
                 button.addEventListener('click', function() {
                     if (!this.disabled) {
                         microInteractions.pulse(this);
+                    }
+                });
+                
+                // Add touchstart listeners for mobile
+                button.addEventListener('touchstart', function() {
+                    if (!this.disabled) {
+                        this.classList.add('touch-active');
+                    }
+                });
+                
+                button.addEventListener('touchend', function() {
+                    if (!this.disabled) {
+                        this.classList.remove('touch-active');
+                    }
+                });
+                
+                button.addEventListener('touchcancel', function() {
+                    if (!this.disabled) {
+                        this.classList.remove('touch-active');
                     }
                 });
             });
