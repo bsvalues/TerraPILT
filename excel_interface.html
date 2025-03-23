@@ -534,6 +534,15 @@
                     <div class="toolbar-separator"></div>
                     
                     <div class="toolbar-group">
+                        <button id="export-excel-btn" title="Export to Excel"><i class="fas fa-file-excel"></i></button>
+                        <button id="export-pdf-btn" title="Export to PDF"><i class="fas fa-file-pdf"></i></button>
+                        <button id="export-csv-btn" title="Export to CSV"><i class="fas fa-file-csv"></i></button>
+                        <button id="share-btn" title="Share Report"><i class="fas fa-share-alt"></i></button>
+                    </div>
+                    
+                    <div class="toolbar-separator"></div>
+                    
+                    <div class="toolbar-group">
                         <button id="cut-btn" title="Cut"><i class="fas fa-cut"></i></button>
                         <button id="copy-btn" title="Copy"><i class="fas fa-copy"></i></button>
                         <button id="paste-btn" title="Paste"><i class="fas fa-paste"></i></button>
@@ -845,6 +854,8 @@
     <script src="https://cdn.jsdelivr.net/npm/handsontable@12.3.3/dist/handsontable.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="simple_pilt_calculator.js"></script>
     <script src="ai_assistant.js"></script>
     
@@ -1967,6 +1978,511 @@
             
             // Initialize AI features
             updateAIFeaturesVisibility();
+            
+            // -------------------------------------------------------------
+            // Data Export and Sharing Capabilities
+            // -------------------------------------------------------------
+            
+            // Export to Excel
+            document.getElementById('export-excel-btn').addEventListener('click', function() {
+                const removeSpinner = microInteractions.addLoadingSpinner(this, 'Exporting...');
+                
+                setTimeout(() => {
+                    try {
+                        // Get the current date for the filename
+                        const date = new Date();
+                        const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+                        
+                        // Create workbook with data from Handsontable
+                        const wb = XLSX.utils.book_new();
+                        
+                        // Convert the data to the format expected by SheetJS
+                        const wsData = [
+                            ['District', 'Assessed Value', 'Levy Rate', 'Base PILT', 'Deduction', 'PILT Due']
+                        ];
+                        
+                        // Add data rows
+                        piltResults.forEach(row => {
+                            wsData.push([
+                                row.district,
+                                row.assessedValue,
+                                row.levyRate,
+                                row.basePILT,
+                                row.deduction,
+                                row.piltDue
+                            ]);
+                        });
+                        
+                        // Add summary row
+                        const totals = window.aggregatePILT(piltResults);
+                        wsData.push([
+                            'TOTAL',
+                            totals.assessedValue,
+                            '',
+                            totals.basePILT,
+                            totals.deduction,
+                            totals.piltDue
+                        ]);
+                        
+                        // Create worksheet and add to workbook
+                        const ws = XLSX.utils.aoa_to_sheet(wsData);
+                        XLSX.utils.book_append_sheet(wb, ws, 'PILT Data');
+                        
+                        // Create a second sheet with summary
+                        const summaryData = [
+                            ['PILT Summary Report'],
+                            ['Generated on:', date.toLocaleString()],
+                            [''],
+                            ['Total Districts:', piltResults.length],
+                            ['Total Assessed Value:', totals.assessedValue],
+                            ['Average Levy Rate:', totals.levyRate / piltResults.length],
+                            ['Total Base PILT:', totals.basePILT],
+                            ['Total Deductions:', totals.deduction],
+                            ['Total PILT Due:', totals.piltDue]
+                        ];
+                        
+                        const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
+                        XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+                        
+                        // Save workbook
+                        XLSX.writeFile(wb, `PILT_Report_${dateStr}.xlsx`);
+                        
+                        removeSpinner();
+                        microInteractions.showSuccess(this, 'Downloaded!');
+                    } catch (error) {
+                        console.error('Error exporting to Excel:', error);
+                        removeSpinner();
+                        alert('Failed to export to Excel: ' + error.message);
+                    }
+                }, 500);
+            });
+            
+            // Export to CSV
+            document.getElementById('export-csv-btn').addEventListener('click', function() {
+                const removeSpinner = microInteractions.addLoadingSpinner(this, 'Exporting...');
+                
+                setTimeout(() => {
+                    try {
+                        // Get the current date for the filename
+                        const date = new Date();
+                        const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+                        
+                        // Create CSV content
+                        let csvContent = 'District,Assessed Value,Levy Rate,Base PILT,Deduction,PILT Due\n';
+                        
+                        // Add data rows
+                        piltResults.forEach(row => {
+                            csvContent += `${row.district},${row.assessedValue},${row.levyRate},${row.basePILT},${row.deduction},${row.piltDue}\n`;
+                        });
+                        
+                        // Add summary row
+                        const totals = window.aggregatePILT(piltResults);
+                        csvContent += `TOTAL,${totals.assessedValue},,${totals.basePILT},${totals.deduction},${totals.piltDue}\n`;
+                        
+                        // Create download link
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.setAttribute('href', url);
+                        link.setAttribute('download', `PILT_Data_${dateStr}.csv`);
+                        link.style.display = 'none';
+                        document.body.appendChild(link);
+                        
+                        // Trigger download
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        removeSpinner();
+                        microInteractions.showSuccess(this, 'Downloaded!');
+                    } catch (error) {
+                        console.error('Error exporting to CSV:', error);
+                        removeSpinner();
+                        alert('Failed to export to CSV: ' + error.message);
+                    }
+                }, 500);
+            });
+            
+            // Export to PDF
+            document.getElementById('export-pdf-btn').addEventListener('click', function() {
+                const removeSpinner = microInteractions.addLoadingSpinner(this, 'Generating PDF...');
+                
+                setTimeout(() => {
+                    try {
+                        // Create a hidden div to hold the report content
+                        const reportDiv = document.createElement('div');
+                        reportDiv.style.position = 'absolute';
+                        reportDiv.style.left = '-9999px';
+                        reportDiv.style.width = '800px';
+                        reportDiv.style.fontFamily = 'Arial, sans-serif';
+                        reportDiv.style.padding = '20px';
+                        document.body.appendChild(reportDiv);
+                        
+                        // Add report title and date
+                        const date = new Date();
+                        const dateStr = date.toLocaleDateString();
+                        reportDiv.innerHTML = `
+                            <div style="text-align: center; margin-bottom: 20px;">
+                                <h1 style="margin-bottom: 5px;">PILT Report</h1>
+                                <p style="color: #666;">Generated on ${dateStr}</p>
+                            </div>
+                        `;
+                        
+                        // Add summary information
+                        const totals = window.aggregatePILT(piltResults);
+                        const summaryHTML = `
+                            <div style="margin-bottom: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+                                <h2 style="margin-top: 0; margin-bottom: 15px;">Summary</h2>
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="padding: 5px; width: 50%;">Total Districts:</td>
+                                        <td style="padding: 5px;">${piltResults.length}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px;">Total Assessed Value:</td>
+                                        <td style="padding: 5px;">${formatCurrency(totals.assessedValue)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px;">Average Levy Rate:</td>
+                                        <td style="padding: 5px;">${(totals.levyRate / piltResults.length).toFixed(4)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px;">Total Base PILT:</td>
+                                        <td style="padding: 5px;">${formatCurrency(totals.basePILT)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px;">Total Deductions:</td>
+                                        <td style="padding: 5px;">${formatCurrency(totals.deduction)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px;">Total PILT Due:</td>
+                                        <td style="padding: 5px; font-weight: bold;">${formatCurrency(totals.piltDue)}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        `;
+                        reportDiv.innerHTML += summaryHTML;
+                        
+                        // Add detailed table
+                        let tableHTML = `
+                            <h2 style="margin-top: 0; margin-bottom: 15px;">District Breakdown</h2>
+                            <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+                                <thead>
+                                    <tr style="background-color: #0077b6; color: white;">
+                                        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">District</th>
+                                        <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">Assessed Value</th>
+                                        <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">Levy Rate</th>
+                                        <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">Base PILT</th>
+                                        <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">Deduction</th>
+                                        <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">PILT Due</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+                        
+                        // Add rows for each district
+                        piltResults.forEach((row, index) => {
+                            const bgColor = index % 2 === 0 ? 'white' : '#f8f9fa';
+                            tableHTML += `
+                                <tr style="background-color: ${bgColor};">
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${row.district}</td>
+                                    <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">${formatCurrency(row.assessedValue)}</td>
+                                    <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">${row.levyRate.toFixed(4)}</td>
+                                    <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">${formatCurrency(row.basePILT)}</td>
+                                    <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">${formatCurrency(row.deduction)}</td>
+                                    <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">${formatCurrency(row.piltDue)}</td>
+                                </tr>
+                            `;
+                        });
+                        
+                        // Add totals row
+                        tableHTML += `
+                                <tr style="background-color: #e6f3ff; font-weight: bold;">
+                                    <td style="padding: 8px; border: 1px solid #ddd;">TOTAL</td>
+                                    <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">${formatCurrency(totals.assessedValue)}</td>
+                                    <td style="padding: 8px; text-align: right; border: 1px solid #ddd;"></td>
+                                    <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">${formatCurrency(totals.basePILT)}</td>
+                                    <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">${formatCurrency(totals.deduction)}</td>
+                                    <td style="padding: 8px; text-align: right; border: 1px solid #ddd;">${formatCurrency(totals.piltDue)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        `;
+                        reportDiv.innerHTML += tableHTML;
+                        
+                        // Add footer
+                        reportDiv.innerHTML += `
+                            <div style="margin-top: 30px; text-align: center; color: #666; font-size: 12px;">
+                                <p>This report was generated by the Benton County PILT Dashboard.</p>
+                            </div>
+                        `;
+                        
+                        // Use html2canvas to render the report div to a canvas
+                        html2canvas(reportDiv).then(canvas => {
+                            // Clean up the temporary div
+                            document.body.removeChild(reportDiv);
+                            
+                            // Create PDF with jsPDF
+                            const { jsPDF } = window.jspdf;
+                            const pdf = new jsPDF('p', 'mm', 'a4');
+                            
+                            // A4 dimensions: 210mm × 297mm
+                            const imgWidth = 190; // Slightly less than A4 width to allow for margins
+                            const pageHeight = 297;
+                            const imgHeight = canvas.height * imgWidth / canvas.width;
+                            let heightLeft = imgHeight;
+                            let position = 10; // Starting position (margin from top)
+                            
+                            // Add the first page
+                            pdf.addImage(canvas, 'PNG', 10, position, imgWidth, imgHeight);
+                            heightLeft -= pageHeight - 20; // Subtract the first page height (with margins)
+                            
+                            // Add additional pages if needed
+                            while (heightLeft > 0) {
+                                position = heightLeft - imgHeight; // Move position for next page
+                                pdf.addPage();
+                                pdf.addImage(canvas, 'PNG', 10, position, imgWidth, imgHeight);
+                                heightLeft -= pageHeight - 20;
+                            }
+                            
+                            // Save the PDF
+                            pdf.save('PILT_Report.pdf');
+                            
+                            removeSpinner();
+                            microInteractions.showSuccess(this, 'Downloaded!');
+                        }).catch(error => {
+                            console.error('Error generating PDF:', error);
+                            removeSpinner();
+                            alert('Failed to generate PDF: ' + error.message);
+                        });
+                    } catch (error) {
+                        console.error('Error exporting to PDF:', error);
+                        removeSpinner();
+                        alert('Failed to export to PDF: ' + error.message);
+                    }
+                }, 500);
+            });
+            
+            // Share report
+            document.getElementById('share-btn').addEventListener('click', function() {
+                // Create a modal for share options
+                const modalHTML = `
+                    <div id="share-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;">
+                        <div style="background: white; max-width: 500px; width: 90%; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); padding: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <h2 style="margin: 0;">Share PILT Report</h2>
+                                <button id="close-share-modal" style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <p>Choose how you'd like to share this PILT report:</p>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                                <button id="share-email-btn" class="primary-button" style="display: flex; flex-direction: column; align-items: center; padding: 15px; gap: 10px;">
+                                    <i class="fas fa-envelope" style="font-size: 24px;"></i>
+                                    <span>Email</span>
+                                </button>
+                                
+                                <button id="share-copy-btn" class="primary-button" style="display: flex; flex-direction: column; align-items: center; padding: 15px; gap: 10px;">
+                                    <i class="fas fa-copy" style="font-size: 24px;"></i>
+                                    <span>Copy Link</span>
+                                </button>
+                                
+                                <button id="share-download-btn" class="primary-button" style="display: flex; flex-direction: column; align-items: center; padding: 15px; gap: 10px;">
+                                    <i class="fas fa-download" style="font-size: 24px;"></i>
+                                    <span>Download All</span>
+                                </button>
+                                
+                                <button id="share-print-btn" class="primary-button" style="display: flex; flex-direction: column; align-items: center; padding: 15px; gap: 10px;">
+                                    <i class="fas fa-print" style="font-size: 24px;"></i>
+                                    <span>Print</span>
+                                </button>
+                            </div>
+                            
+                            <div id="share-link-section" style="display: none; margin-top: 20px;">
+                                <label for="share-link-input">Share link:</label>
+                                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                                    <input id="share-link-input" type="text" value="https://pilt-dashboard.repl.co/?report=${Date.now()}" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 3px;" readonly>
+                                    <button id="copy-link-btn" class="primary-button">Copy</button>
+                                </div>
+                                <p id="copy-success" style="color: #4CAF50; margin-top: 5px; display: none;">Link copied to clipboard!</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add modal to the document
+                const modalContainer = document.createElement('div');
+                modalContainer.innerHTML = modalHTML;
+                document.body.appendChild(modalContainer);
+                
+                // Add event listeners to modal buttons
+                document.getElementById('close-share-modal').addEventListener('click', function() {
+                    document.body.removeChild(modalContainer);
+                });
+                
+                // Email sharing
+                document.getElementById('share-email-btn').addEventListener('click', function() {
+                    // Format email subject and body
+                    const subject = 'PILT Report';
+                    const body = `
+                        PILT Report Summary
+                        
+                        Total Districts: ${piltResults.length}
+                        Total Assessed Value: ${formatCurrency(window.aggregatePILT(piltResults).assessedValue)}
+                        Total PILT Due: ${formatCurrency(window.aggregatePILT(piltResults).piltDue)}
+                        
+                        Generated on: ${new Date().toLocaleString()}
+                    `;
+                    
+                    // Create mailto link
+                    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.location.href = mailtoLink;
+                });
+                
+                // Copy link
+                document.getElementById('share-copy-btn').addEventListener('click', function() {
+                    const linkSection = document.getElementById('share-link-section');
+                    linkSection.style.display = 'block';
+                    
+                    document.getElementById('copy-link-btn').addEventListener('click', function() {
+                        const linkInput = document.getElementById('share-link-input');
+                        linkInput.select();
+                        document.execCommand('copy');
+                        
+                        // Show success message
+                        document.getElementById('copy-success').style.display = 'block';
+                        setTimeout(() => {
+                            document.getElementById('copy-success').style.display = 'none';
+                        }, 3000);
+                    });
+                });
+                
+                // Download all formats
+                document.getElementById('share-download-btn').addEventListener('click', function() {
+                    // Trigger all download buttons in sequence with delays
+                    document.getElementById('close-share-modal').click();
+                    
+                    setTimeout(() => document.getElementById('export-excel-btn').click(), 500);
+                    setTimeout(() => document.getElementById('export-csv-btn').click(), 1500);
+                    setTimeout(() => document.getElementById('export-pdf-btn').click(), 2500);
+                });
+                
+                // Print report
+                document.getElementById('share-print-btn').addEventListener('click', function() {
+                    document.body.removeChild(modalContainer);
+                    
+                    // Create a print-friendly version of the data
+                    const printWindow = window.open('', '_blank');
+                    
+                    const printContent = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>PILT Report</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; margin: 20px; }
+                                h1, h2 { color: #0077b6; }
+                                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                                th { background-color: #0077b6; color: white; padding: 10px; text-align: left; }
+                                td { padding: 8px; border-bottom: 1px solid #ddd; }
+                                tr:nth-child(even) { background-color: #f8f9fa; }
+                                .total-row { font-weight: bold; background-color: #e6f3ff; }
+                                .summary-table { margin-bottom: 30px; }
+                                .summary-table td:first-child { width: 200px; }
+                                @media print {
+                                    .no-print { display: none; }
+                                    body { margin: 0; padding: 15px; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="no-print" style="margin-bottom: 20px;">
+                                <button onclick="window.print()" style="padding: 10px 15px; background-color: #0077b6; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                                    Print Report
+                                </button>
+                                <button onclick="window.close()" style="padding: 10px 15px; background-color: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer; margin-left: 10px;">
+                                    Close
+                                </button>
+                            </div>
+                            
+                            <h1>PILT Report</h1>
+                            <p>Generated on ${new Date().toLocaleString()}</p>
+                            
+                            <h2>Summary</h2>
+                            <table class="summary-table">
+                                <tr>
+                                    <td>Total Districts:</td>
+                                    <td>${piltResults.length}</td>
+                                </tr>
+                                <tr>
+                                    <td>Total Assessed Value:</td>
+                                    <td>${formatCurrency(window.aggregatePILT(piltResults).assessedValue)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Average Levy Rate:</td>
+                                    <td>${(window.aggregatePILT(piltResults).levyRate / piltResults.length).toFixed(4)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Total Base PILT:</td>
+                                    <td>${formatCurrency(window.aggregatePILT(piltResults).basePILT)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Total Deductions:</td>
+                                    <td>${formatCurrency(window.aggregatePILT(piltResults).deduction)}</td>
+                                </tr>
+                                <tr>
+                                    <td>Total PILT Due:</td>
+                                    <td><strong>${formatCurrency(window.aggregatePILT(piltResults).piltDue)}</strong></td>
+                                </tr>
+                            </table>
+                            
+                            <h2>District Breakdown</h2>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>District</th>
+                                        <th>Assessed Value</th>
+                                        <th>Levy Rate</th>
+                                        <th>Base PILT</th>
+                                        <th>Deduction</th>
+                                        <th>PILT Due</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${piltResults.map(row => `
+                                        <tr>
+                                            <td>${row.district}</td>
+                                            <td>${formatCurrency(row.assessedValue)}</td>
+                                            <td>${row.levyRate.toFixed(4)}</td>
+                                            <td>${formatCurrency(row.basePILT)}</td>
+                                            <td>${formatCurrency(row.deduction)}</td>
+                                            <td>${formatCurrency(row.piltDue)}</td>
+                                        </tr>
+                                    `).join('')}
+                                    <tr class="total-row">
+                                        <td>TOTAL</td>
+                                        <td>${formatCurrency(window.aggregatePILT(piltResults).assessedValue)}</td>
+                                        <td></td>
+                                        <td>${formatCurrency(window.aggregatePILT(piltResults).basePILT)}</td>
+                                        <td>${formatCurrency(window.aggregatePILT(piltResults).deduction)}</td>
+                                        <td>${formatCurrency(window.aggregatePILT(piltResults).piltDue)}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
+                            <footer style="margin-top: 50px; text-align: center; color: #666; font-size: 12px;">
+                                <p>This report was generated by the Benton County PILT Dashboard.</p>
+                            </footer>
+                        </body>
+                        </html>
+                    `;
+                    
+                    printWindow.document.open();
+                    printWindow.document.write(printContent);
+                    printWindow.document.close();
+                });
+            });
             
             // -------------------------------------------------------------
             // Micro-Interactions for User Engagement
