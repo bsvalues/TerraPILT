@@ -2575,6 +2575,106 @@
                                 .total-row { font-weight: bold; background-color: #e6f3ff; }
                                 .summary-table { margin-bottom: 30px; }
                                 .summary-table td:first-child { width: 200px; }
+                                /* Responsive Design Media Queries */
+                                @media (max-width: 768px) {
+                                    .container {
+                                        max-width: 100%;
+                                        padding: 0 10px;
+                                    }
+                                    
+                                    header h1 {
+                                        font-size: 1.8rem;
+                                    }
+                                    
+                                    .toolbar {
+                                        flex-wrap: wrap;
+                                    }
+                                    
+                                    .toolbar-group {
+                                        margin-bottom: 10px;
+                                    }
+                                    
+                                    .summary-panels {
+                                        flex-direction: column;
+                                    }
+                                    
+                                    .summary-panel {
+                                        width: 100%;
+                                        margin-bottom: 10px;
+                                    }
+                                    
+                                    .tabs {
+                                        flex-wrap: wrap;
+                                    }
+                                    
+                                    .tab {
+                                        padding: 8px 12px;
+                                        font-size: 0.9rem;
+                                    }
+                                    
+                                    #grid-container {
+                                        height: 400px;
+                                    }
+                                    
+                                    .ai-panel {
+                                        flex-direction: column;
+                                    }
+                                    
+                                    .ai-sidebar {
+                                        width: 100%;
+                                        margin-bottom: 15px;
+                                    }
+                                    
+                                    .ai-content {
+                                        width: 100%;
+                                    }
+                                    
+                                    .file-upload-container {
+                                        flex-direction: column;
+                                    }
+                                    
+                                    .modal-content {
+                                        width: 95%;
+                                        max-height: 90vh;
+                                    }
+                                }
+                                
+                                @media (max-width: 480px) {
+                                    header h1 {
+                                        font-size: 1.5rem;
+                                    }
+                                    
+                                    .toolbar button, .toolbar select {
+                                        padding: 6px 8px;
+                                        font-size: 0.8rem;
+                                    }
+                                    
+                                    .tab {
+                                        padding: 6px 10px;
+                                        font-size: 0.8rem;
+                                    }
+                                    
+                                    #grid-container {
+                                        height: 300px;
+                                    }
+                                    
+                                    .summary-panel h3 {
+                                        font-size: 0.9rem;
+                                    }
+                                    
+                                    .summary-panel p {
+                                        font-size: 1.1rem;
+                                    }
+                                    
+                                    .template-tabs {
+                                        flex-direction: column;
+                                    }
+                                    
+                                    .template-tab {
+                                        width: 100%;
+                                    }
+                                }
+                                
                                 @media print {
                                     .no-print { display: none; }
                                     body { margin: 0; padding: 15px; }
@@ -2758,10 +2858,62 @@
             
             // Apply micro-interactions to UI elements
             
+            // Mobile Detection Helper
+            const isMobileDevice = () => {
+                return (window.innerWidth <= 768) || 
+                       ('ontouchstart' in window) ||
+                       (navigator.maxTouchPoints > 0) || 
+                       (navigator.msMaxTouchPoints > 0);
+            };
+            
+            // Add mobile-specific class to body if on mobile
+            if (isMobileDevice()) {
+                document.body.classList.add('mobile-device');
+                
+                // Enhance tooltips for mobile (make them work with taps)
+                document.querySelectorAll('.tooltip, .ai-tooltip-icon').forEach(tooltip => {
+                    let touchTimer;
+                    
+                    tooltip.addEventListener('touchstart', function(e) {
+                        touchTimer = setTimeout(() => {
+                            // Show tooltip content
+                            const tooltipContent = this.querySelector('.tooltip-content') || 
+                                                this.nextElementSibling;
+                            if (tooltipContent) {
+                                tooltipContent.style.display = 'block';
+                                e.preventDefault(); // Prevent regular click
+                            }
+                        }, 300);
+                    });
+                    
+                    tooltip.addEventListener('touchend', function() {
+                        clearTimeout(touchTimer);
+                    });
+                    
+                    // Hide all tooltips when tapping elsewhere
+                    document.addEventListener('touchstart', function(e) {
+                        if (!e.target.closest('.tooltip') && !e.target.closest('.ai-tooltip-icon')) {
+                            document.querySelectorAll('.tooltip-content').forEach(content => {
+                                content.style.display = 'none';
+                            });
+                        }
+                    });
+                });
+            }
+            
             // Tab switching animation
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', function() {
                     microInteractions.pulse(this);
+                });
+                
+                // Add touchstart listeners for mobile
+                tab.addEventListener('touchstart', function() {
+                    this.classList.add('touch-active');
+                });
+                
+                tab.addEventListener('touchend', function() {
+                    this.classList.remove('touch-active');
                 });
             });
             
