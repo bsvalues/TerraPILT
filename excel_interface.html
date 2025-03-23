@@ -857,9 +857,22 @@
                 const isClickInsideTooltip = tooltip.contains(e.target);
                 const isTooltipIcon = e.target.classList.contains('ai-tooltip-icon');
                 
-                // If clicking outside tooltip and not on a tooltip icon, hide it
+                // If clicking outside tooltip and not on a tooltip icon, hide it with animation
                 if (!isClickInsideTooltip && !isTooltipIcon && tooltip.classList.contains('visible')) {
-                    tooltip.classList.remove('visible');
+                    // First remove the fade-in class
+                    tooltip.classList.remove('fade-in');
+                    
+                    // Add a temporary fade-out class
+                    tooltip.style.opacity = '0';
+                    tooltip.style.transition = 'opacity 0.3s ease';
+                    
+                    // After the animation completes, hide the tooltip
+                    setTimeout(() => {
+                        tooltip.classList.remove('visible');
+                        // Reset styles for next time
+                        tooltip.style.opacity = '';
+                        tooltip.style.transition = '';
+                    }, 300);
                 }
             });
             
@@ -873,17 +886,71 @@
                 }).format(value);
             }
             
-            // Tab switching functionality
+            // Tab switching functionality with animations
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', function() {
-                    // Remove active class from all tabs and content
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    // If already active, do nothing
+                    if (this.classList.contains('active')) return;
                     
-                    // Add active class to clicked tab and corresponding content
-                    this.classList.add('active');
+                    // Remove active class from all tabs
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    
+                    // Get current active content and target content
+                    const previousContent = document.querySelector('.tab-content.active');
                     const tabId = this.getAttribute('data-tab');
-                    document.getElementById(tabId).classList.add('active');
+                    const targetContent = document.getElementById(tabId);
+                    
+                    // If there's an active content, fade it out first
+                    if (previousContent) {
+                        // Add fade-out effect
+                        previousContent.style.opacity = '0';
+                        previousContent.style.transition = 'opacity 0.2s ease';
+                        
+                        // After fade-out completes, switch the tabs
+                        setTimeout(() => {
+                            // Remove active class from all content elements
+                            document.querySelectorAll('.tab-content').forEach(c => {
+                                c.classList.remove('active');
+                                c.style.opacity = '';
+                                c.style.transition = '';
+                            });
+                            
+                            // Activate clicked tab and its content
+                            this.classList.add('active');
+                            targetContent.classList.add('active');
+                            
+                            // Fade-in the new content
+                            targetContent.style.opacity = '0';
+                            targetContent.style.transition = 'opacity 0.3s ease';
+                            
+                            // Trigger reflow for animation to work
+                            void targetContent.offsetWidth;
+                            targetContent.style.opacity = '1';
+                            
+                            // If switching to Dashboard tab, generate chart with animation
+                            if (tabId === 'dashboard') {
+                                setTimeout(() => generateChart(), 50);
+                            }
+                        }, 200);
+                    } else {
+                        // No previous content, just activate the new one with fade-in
+                        this.classList.add('active');
+                        targetContent.classList.add('active');
+                        targetContent.style.opacity = '0';
+                        targetContent.style.transition = 'opacity 0.3s ease';
+                        
+                        // Trigger reflow for animation to work
+                        void targetContent.offsetWidth;
+                        targetContent.style.opacity = '1';
+                        
+                        // If it's dashboard tab, generate chart
+                        if (tabId === 'dashboard') {
+                            setTimeout(() => generateChart(), 50);
+                        }
+                    }
+                    
+                    // Apply a subtle effect to the clicked tab
+                    microInteractions.pulse(this);
                 });
             });
             
@@ -917,10 +984,13 @@
                         tooltip.querySelector('.ai-tooltip-title').textContent = 
                             `AI Insight: ${instance.getColHeader(col)}`;
                         tooltip.querySelector('.ai-tooltip-content').innerHTML = 
-                            '<div class="ai-tooltip-loading">Loading AI insights...</div>';
+                            '<div class="ai-tooltip-loading"><span class="loading-spinner"></span> Loading AI insights...</div>';
                         
-                        // Show tooltip
-                        tooltip.classList.add('visible');
+                        // Show tooltip with animation
+                        tooltip.classList.remove('fade-in');
+                        // Trigger reflow for animation to restart
+                        void tooltip.offsetWidth;
+                        tooltip.classList.add('visible', 'fade-in');
                         
                         // Get district data for this row
                         const rowData = instance.getSourceDataAtRow(row);
