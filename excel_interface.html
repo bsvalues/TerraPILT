@@ -459,6 +459,38 @@
             width: 100%;
         }
         
+        /* Validation message styling */
+        #validation-messages {
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left-width: 4px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .validation-errors h4 {
+            color: #dc3545;
+            margin-top: 0;
+        }
+        
+        .validation-warnings h4 {
+            color: #ffc107;
+            margin-top: 0;
+        }
+        
+        .validation-errors ul, 
+        .validation-warnings ul {
+            margin-top: 5px;
+            padding-left: 20px;
+        }
+        
+        .validation-errors li {
+            color: #721c24;
+        }
+        
+        .validation-warnings li {
+            color: #856404;
+        }
+        
         .mobile-device .ai-chat-messages {
             max-height: 250px;
         }
@@ -1412,8 +1444,43 @@
                     deduction: typeof row.deduction === 'number' ? row.deduction : 0
                 }));
                 
-                // Calculate PILT
-                piltResults = window.calculatePILT(districtData);
+                // Calculate PILT with validation
+                const results = window.calculatePILT(districtData);
+                
+                // Check if we have validation results
+                if (results.validationResult) {
+                    // Clear any previous validation messages
+                    const validationContainer = document.getElementById('validation-messages');
+                    
+                    // If there are validation warnings but no errors, show them but proceed with calculation
+                    if (results.validationResult.isValid && results.validationResult.warnings && results.validationResult.warnings.length > 0) {
+                        // Display warnings
+                        if (window.displayValidationMessages) {
+                            window.displayValidationMessages({
+                                isValid: true,
+                                errors: [],
+                                warnings: results.validationResult.warnings
+                            }, 'validation-messages');
+                            
+                            // Style container for warnings
+                            validationContainer.style.borderLeftColor = '#ffc107'; // yellow for warnings
+                        }
+                    } else if (!results.validationResult.isValid) {
+                        // Display errors
+                        if (window.displayValidationMessages) {
+                            window.displayValidationMessages(results.validationResult, 'validation-messages');
+                            
+                            // Style container for errors
+                            validationContainer.style.borderLeftColor = '#dc3545'; // red for errors
+                        }
+                    } else {
+                        // No warnings or errors, hide validation messages
+                        validationContainer.style.display = 'none';
+                    }
+                }
+                
+                // Use the calculated data from results
+                piltResults = results.data;
                 
                 // Update calculated columns
                 piltResults.forEach((result, index) => {
