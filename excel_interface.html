@@ -362,6 +362,135 @@
             color: #0077b6;
             margin-left: 5px;
             font-size: 14px;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+        
+        .ai-tooltip-icon:hover {
+            transform: scale(1.2);
+            color: #00a8e8;
+        }
+        
+        /* Micro-interaction animations */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .bounce {
+            animation: bounce 0.5s ease-in-out;
+        }
+        
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        /* Loading indicator */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 119, 182, 0.2);
+            border-top-color: #0077b6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        /* Button hover and active states */
+        .toolbar button:hover {
+            background-color: #f0f7ff;
+            transform: translateY(-1px);
+            transition: all 0.2s ease;
+        }
+        
+        .toolbar button:active {
+            transform: translateY(1px);
+        }
+        
+        .primary-button {
+            background-color: #0077b6;
+            color: white;
+            transition: all 0.2s ease;
+        }
+        
+        .primary-button:hover {
+            background-color: #0088ce;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .primary-button:active {
+            transform: translateY(1px);
+            box-shadow: none;
+        }
+        
+        .secondary-button {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            transition: all 0.2s ease;
+        }
+        
+        .secondary-button:hover {
+            background-color: #f0f0f0;
+            transform: translateY(-1px);
+        }
+        
+        .secondary-button:active {
+            transform: translateY(1px);
+        }
+        
+        /* Tab hover effect */
+        .tab {
+            transition: all 0.2s ease;
+        }
+        
+        .tab:hover:not(.active) {
+            background-color: #e9ecef;
+            border-color: #eee;
+        }
+        
+        /* Summary panel hover effect */
+        .summary-panel {
+            transition: all 0.3s ease;
+        }
+        
+        .summary-panel:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         
         footer {
@@ -1768,14 +1897,204 @@
             
             // Initialize AI features
             updateAIFeaturesVisibility();
+            
+            // -------------------------------------------------------------
+            // Micro-Interactions for User Engagement
+            // -------------------------------------------------------------
+            const microInteractions = {
+                // Add pulse animation to an element
+                pulse: (element) => {
+                    element.classList.add('pulse');
+                    setTimeout(() => element.classList.remove('pulse'), 500);
+                },
+                
+                // Add slide-in animation to an element
+                slideIn: (element) => {
+                    element.classList.add('slide-in');
+                    setTimeout(() => element.classList.remove('slide-in'), 300);
+                },
+                
+                // Add fade-in animation to an element
+                fadeIn: (element) => {
+                    element.classList.add('fade-in');
+                    setTimeout(() => element.classList.remove('fade-in'), 300);
+                },
+                
+                // Add bounce animation to an element
+                bounce: (element) => {
+                    element.classList.add('bounce');
+                    setTimeout(() => element.classList.remove('bounce'), 500);
+                },
+                
+                // Show a brief success indicator
+                showSuccess: (element, message = 'Success!') => {
+                    const originalText = element.textContent;
+                    const originalBg = element.style.backgroundColor;
+                    
+                    // Show success state
+                    element.textContent = message;
+                    element.style.backgroundColor = '#4CAF50';
+                    element.style.color = 'white';
+                    
+                    // Restore original state after a delay
+                    setTimeout(() => {
+                        element.textContent = originalText;
+                        element.style.backgroundColor = originalBg;
+                        element.style.color = '';
+                    }, 1000);
+                },
+                
+                // Add a loading spinner to an element
+                addLoadingSpinner: (element, replacementText = 'Loading...') => {
+                    const originalContent = element.innerHTML;
+                    const spinner = document.createElement('span');
+                    spinner.className = 'loading-spinner';
+                    
+                    element.innerHTML = '';
+                    element.appendChild(spinner);
+                    element.appendChild(document.createTextNode(' ' + replacementText));
+                    
+                    return () => {
+                        element.innerHTML = originalContent;
+                    };
+                }
+            };
+            
+            // Apply micro-interactions to UI elements
+            
+            // Tab switching animation
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    microInteractions.pulse(this);
+                });
+            });
+            
+            // Button click animations
+            document.querySelectorAll('.toolbar button, .primary-button, .secondary-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    if (!this.disabled) {
+                        microInteractions.pulse(this);
+                    }
+                });
+            });
+            
+            // Loading sample data animation enhancement
+            const originalLoadSampleHandler = document.getElementById('load-sample-btn').onclick;
+            document.getElementById('load-sample-btn').onclick = function() {
+                const removeSpinner = microInteractions.addLoadingSpinner(this, 'Loading...');
+                setTimeout(() => {
+                    originalLoadSampleHandler.call(this);
+                    removeSpinner();
+                    microInteractions.showSuccess(this, 'Loaded!');
+                    
+                    // Animate the panels
+                    document.querySelectorAll('.summary-panel').forEach((panel, index) => {
+                        setTimeout(() => {
+                            microInteractions.slideIn(panel);
+                        }, index * 100); // Stagger the animations
+                    });
+                }, 300);
+                return false; // Prevent default
+            };
+            
+            // Enhance the save button
+            document.getElementById('save-btn').addEventListener('click', function() {
+                const removeSpinner = microInteractions.addLoadingSpinner(this, 'Saving...');
+                setTimeout(() => {
+                    removeSpinner();
+                    microInteractions.showSuccess(this, 'Saved!');
+                }, 500);
+            });
+            
+            // AI button enhancements
+            ['get-insights-btn', 'get-whatif-btn', 'explain-calc-btn', 'generate-report-btn', 'ai-chat-send'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    const originalClickHandler = element.onclick;
+                    element.onclick = function(event) {
+                        microInteractions.pulse(this);
+                        
+                        // Only add our custom handler if we're not already in the midst of an OpenAI request
+                        if (!this.disabled && !this.innerHTML.includes('loading-spinner')) {
+                            const removeSpinner = microInteractions.addLoadingSpinner(this, 'Processing...');
+                            setTimeout(() => {
+                                removeSpinner();
+                                if (originalClickHandler) {
+                                    originalClickHandler.call(this, event);
+                                }
+                            }, 300);
+                            return false; // Prevent default
+                        }
+                    };
+                }
+            });
+            
+            // Formula input enhancement
+            document.getElementById('formula-input').addEventListener('focus', function() {
+                microInteractions.fadeIn(this);
+            });
+            
+            // Animate the summary value changes
+            const originalUpdateSummaryPanels = updateSummaryPanels;
+            updateSummaryPanels = function() {
+                const summaryElements = [
+                    document.getElementById('total-assessed-value'),
+                    document.getElementById('total-base-pilt'),
+                    document.getElementById('total-deductions'),
+                    document.getElementById('total-pilt-due')
+                ];
+                
+                // Get current values
+                const currentValues = summaryElements.map(el => el.textContent);
+                
+                // Run the original function
+                originalUpdateSummaryPanels();
+                
+                // Animate changes
+                summaryElements.forEach((element, index) => {
+                    if (element.textContent !== currentValues[index]) {
+                        microInteractions.pulse(element);
+                    }
+                });
+            };
+            
+            // Add animation to tooltips
+            document.querySelectorAll('.tooltip, .ai-tooltip-icon').forEach(tooltip => {
+                tooltip.addEventListener('mouseenter', function() {
+                    microInteractions.fadeIn(this);
+                });
+            });
+            
+            // Add animation to AI responses
+            const originalAddChatMessage = addChatMessage;
+            addChatMessage = function(role, message) {
+                const result = originalAddChatMessage(role, message);
+                if (role === 'assistant') {
+                    const chatMessages = document.getElementById('ai-chat-messages');
+                    const lastMessage = chatMessages.lastElementChild;
+                    microInteractions.slideIn(lastMessage);
+                }
+                return result;
+            };
+            
+            // Add animation to AI output
+            const originalShowAIOutput = showAIOutput;
+            showAIOutput = function(title, content) {
+                const result = originalShowAIOutput(title, content);
+                const outputElement = document.getElementById('ai-output');
+                microInteractions.slideIn(outputElement);
+                return result;
+            };
         });
     </script>
     
     <!-- AI Tooltip Container (will be positioned dynamically) -->
-    <div id="ai-tooltip" class="ai-tooltip">
+    <div id="ai-tooltip" class="ai-tooltip fade-in">
         <div class="ai-tooltip-title">AI Insight</div>
         <div class="ai-tooltip-content">
-            <div class="ai-tooltip-loading">Loading AI insights...</div>
+            <div class="ai-tooltip-loading">
+                <span class="loading-spinner"></span> Loading AI insights...
+            </div>
         </div>
         <div class="ai-tooltip-footer">
             <small>Powered by AI Assistant</small>
