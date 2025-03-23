@@ -43,14 +43,45 @@ const districtData = [
 ];
 
 /**
- * Calculate PILT for each district
+ * Calculate PILT for each district with validation
  * @param {Array} districts - Array of district data objects
- * @returns {Array} - Array of district data with calculated PILT
+ * @returns {Object} - Object containing calculated data and validation results
  */
 function calculatePILT(districts) {
-  return districts.map(district => {
+  // Validate district data if validation function is available
+  if (window.validateDistrictData) {
+    const validationResult = window.validateDistrictData(districts);
+    
+    if (!validationResult.isValid) {
+      // Display validation errors if the function is available
+      if (window.displayValidationMessages) {
+        window.displayValidationMessages(validationResult);
+      }
+      
+      // Return validation result along with original data
+      return {
+        data: districts.map(district => {
+          const basePILT = district.assessedValue * district.levyRate;
+          const piltDue = basePILT - (district.deduction || 0);
+          
+          return {
+            ...district,
+            basePILT,
+            piltDue
+          };
+        }),
+        validationResult
+      };
+    }
+    
+    // Use validated data
+    districts = validationResult.validatedData;
+  }
+  
+  // Perform calculation
+  const calculatedData = districts.map(district => {
     const basePILT = district.assessedValue * district.levyRate;
-    const piltDue = basePILT - district.deduction;
+    const piltDue = basePILT - (district.deduction || 0);
     
     return {
       ...district,
@@ -58,6 +89,14 @@ function calculatePILT(districts) {
       piltDue
     };
   });
+  
+  // Return the calculated data with validation info
+  return {
+    data: calculatedData,
+    validationResult: window.validateDistrictData ? 
+      { isValid: true, errors: [], warnings: [] } : 
+      null
+  };
 }
 
 /**
@@ -80,16 +119,35 @@ function aggregatePILT(piltData) {
  * Perform "what-if" analysis by adjusting rates or values
  * @param {Array} districts - Original district data
  * @param {Object} options - Adjustment options
- * @returns {Array} - Adjusted district data
+ * @returns {Object} - Object containing adjusted data and validation results
  */
 function whatIfAnalysis(districts, options = {}) {
+  // Validate options if validation function is available
+  if (window.validateWhatIfOptions) {
+    const optionsValidation = window.validateWhatIfOptions(options);
+    
+    if (!optionsValidation.isValid) {
+      // Display validation errors if the function is available
+      if (window.displayValidationMessages) {
+        window.displayValidationMessages(optionsValidation);
+      }
+      
+      // Return original data with validation info
+      return {
+        data: districts,
+        validationResult: optionsValidation
+      };
+    }
+  }
+  
   const { 
     newRates = {}, 
     valueAdjustments = {}, 
     deductionAdjustments = {} 
   } = options;
   
-  return districts.map(district => {
+  // Apply adjustments
+  const adjustedData = districts.map(district => {
     const newDistrict = {...district};
     
     // Apply new levy rate if specified
@@ -109,6 +167,34 @@ function whatIfAnalysis(districts, options = {}) {
     
     return newDistrict;
   });
+  
+  // Validate adjusted data if validation function is available
+  if (window.validateDistrictData) {
+    const validationResult = window.validateDistrictData(adjustedData);
+    
+    if (!validationResult.isValid) {
+      // Display validation errors
+      if (window.displayValidationMessages) {
+        window.displayValidationMessages(validationResult);
+      }
+      
+      return {
+        data: adjustedData,
+        validationResult
+      };
+    }
+    
+    return {
+      data: validationResult.validatedData,
+      validationResult: { isValid: true, errors: [], warnings: [] }
+    };
+  }
+  
+  // Return adjusted data without validation
+  return {
+    data: adjustedData,
+    validationResult: null
+  };
 }
 
 // Make these functions available to the browser
