@@ -2685,10 +2685,35 @@
                     setTimeout(() => element.classList.remove('slide-in'), 300);
                 },
                 
-                // Add fade-in animation to an element
+                // Fade in animation 
                 fadeIn: (element) => {
-                    element.classList.add('fade-in');
-                    setTimeout(() => element.classList.remove('fade-in'), 300);
+                    // If the element has display:none, make it visible with flex
+                    if (window.getComputedStyle(element).display === 'none') {
+                        element.style.opacity = 0;
+                        element.style.display = 'flex';
+                        
+                        // Trigger reflow to ensure the transition works
+                        void element.offsetWidth;
+                        
+                        element.style.opacity = 1;
+                        element.style.transition = 'opacity 0.3s ease-in-out';
+                    } else {
+                        // Otherwise use CSS animation
+                        element.classList.add('fade-in');
+                        setTimeout(() => element.classList.remove('fade-in'), 300);
+                    }
+                },
+                
+                // Fade out animation with optional callback
+                fadeOut: (element, callback) => {
+                    element.style.opacity = 1;
+                    element.style.transition = 'opacity 0.3s ease-in-out';
+                    
+                    element.style.opacity = 0;
+                    
+                    setTimeout(() => {
+                        if (callback) callback();
+                    }, 300);
                 },
                 
                 // Add bounce animation to an element
@@ -2856,6 +2881,459 @@
                 microInteractions.slideIn(outputElement);
                 return result;
             };
+        });
+        
+        // Template functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Template modal controls
+            const templateModal = document.getElementById('template-modal');
+            const templateBtn = document.getElementById('template-btn');
+            const closeTemplateModal = document.getElementById('close-template-modal');
+            
+            // Template tab navigation
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const templateTabs = document.querySelectorAll('.template-tab');
+            
+            // Open the template modal
+            templateBtn.addEventListener('click', function() {
+                templateModal.style.display = 'flex';
+                microInteractions.fadeIn(templateModal);
+                loadSavedTemplates(); // Load any saved templates
+            });
+            
+            // Close the template modal
+            closeTemplateModal.addEventListener('click', function() {
+                microInteractions.fadeOut(templateModal, function() {
+                    templateModal.style.display = 'none';
+                });
+            });
+            
+            // Close modal if clicking outside of content
+            templateModal.addEventListener('click', function(event) {
+                if (event.target === templateModal) {
+                    microInteractions.fadeOut(templateModal, function() {
+                        templateModal.style.display = 'none';
+                    });
+                }
+            });
+            
+            // Template tab switching
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Update active tab button
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show the appropriate tab content
+                    const tabName = this.getAttribute('data-tab');
+                    templateTabs.forEach(tab => tab.classList.remove('active'));
+                    document.getElementById(tabName).classList.add('active');
+                });
+            });
+            
+            // Standard template handling
+            const standardTemplateButtons = document.querySelectorAll('.use-template-btn');
+            standardTemplateButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const templateType = this.getAttribute('data-template');
+                    loadStandardTemplate(templateType);
+                    
+                    // Close the modal
+                    microInteractions.fadeOut(templateModal, function() {
+                        templateModal.style.display = 'none';
+                    });
+                });
+            });
+            
+            // Custom template upload
+            const customTemplateUpload = document.getElementById('custom-template-upload');
+            const uploadTemplateBtn = document.getElementById('upload-template-btn');
+            
+            uploadTemplateBtn.addEventListener('click', function() {
+                if (customTemplateUpload.files.length === 0) {
+                    showNotification('Please select a file first', 'error');
+                    return;
+                }
+                
+                const file = customTemplateUpload.files[0];
+                uploadCustomTemplate(file);
+            });
+            
+            // Export as template
+            const exportTemplateBtn = document.getElementById('export-template-btn');
+            const templateNameInput = document.getElementById('template-name');
+            
+            exportTemplateBtn.addEventListener('click', function() {
+                const templateName = templateNameInput.value.trim();
+                if (!templateName) {
+                    showNotification('Please enter a template name', 'error');
+                    return;
+                }
+                
+                // Get export format options
+                const includeData = document.getElementById('include-data').checked;
+                const includeFormulas = document.getElementById('include-formulas').checked;
+                const includeFormatting = document.getElementById('include-formatting').checked;
+                
+                exportAsTemplate(templateName, {
+                    includeData,
+                    includeFormulas,
+                    includeFormatting
+                });
+                
+                // Reset form
+                templateNameInput.value = '';
+                
+                // Close the modal
+                microInteractions.fadeOut(templateModal, function() {
+                    templateModal.style.display = 'none';
+                });
+            });
+            
+            // Load saved templates
+            function loadSavedTemplates() {
+                const savedTemplatesList = document.getElementById('saved-templates-list');
+                const templates = getSavedTemplates();
+                
+                if (templates.length === 0) {
+                    savedTemplatesList.innerHTML = '<div class="no-templates-message">No saved templates yet.</div>';
+                    return;
+                }
+                
+                let html = '';
+                templates.forEach(template => {
+                    html += `
+                    <div class="template-item" data-template-id="${template.id}">
+                        <div class="template-icon"><i class="fas fa-file-excel"></i></div>
+                        <div class="template-info">
+                            <div class="template-name">${template.name}</div>
+                            <div class="template-description">
+                                Created: ${new Date(template.created).toLocaleDateString()}
+                            </div>
+                        </div>
+                        <button class="use-template-btn load-saved-template" data-template-id="${template.id}">Use</button>
+                        <button class="delete-template-btn" data-template-id="${template.id}">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>`;
+                });
+                
+                savedTemplatesList.innerHTML = html;
+                
+                // Add event listeners to load and delete buttons
+                document.querySelectorAll('.load-saved-template').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const templateId = this.getAttribute('data-template-id');
+                        loadSavedTemplate(templateId);
+                        
+                        // Close the modal
+                        microInteractions.fadeOut(templateModal, function() {
+                            templateModal.style.display = 'none';
+                        });
+                    });
+                });
+                
+                document.querySelectorAll('.delete-template-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const templateId = this.getAttribute('data-template-id');
+                        deleteTemplate(templateId);
+                        loadSavedTemplates(); // Refresh the list
+                    });
+                });
+            }
+            
+            // Import template management
+            function loadStandardTemplate(templateType) {
+                let templateData;
+                
+                switch(templateType) {
+                    case 'standard':
+                        templateData = getStandardTemplate();
+                        break;
+                    case 'benton':
+                        templateData = getBentonCountyTemplate();
+                        break;
+                    case 'historical':
+                        templateData = getHistoricalTemplate();
+                        break;
+                    default:
+                        showNotification('Unknown template type', 'error');
+                        return;
+                }
+                
+                // Load the template data into the grid
+                hot.loadData(templateData.data);
+                
+                // Apply any template-specific formatting
+                if (templateData.formatting) {
+                    applyTemplateFormatting(templateData.formatting);
+                }
+                
+                showNotification(`${templateData.name} template loaded successfully`, 'success');
+            }
+            
+            function uploadCustomTemplate(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        // Use SheetJS to read the Excel file
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Get the first sheet name
+                        const firstSheet = workbook.SheetNames[0];
+                        // Convert to JSON
+                        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {header: 1});
+                        
+                        // Load data into the grid
+                        hot.loadData(jsonData);
+                        
+                        // Close the modal
+                        microInteractions.fadeOut(templateModal, function() {
+                            templateModal.style.display = 'none';
+                        });
+                        
+                        showNotification('Custom template loaded successfully', 'success');
+                    } catch (error) {
+                        console.error('Error loading template:', error);
+                        showNotification('Error loading template: ' + error.message, 'error');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+            
+            // Export template functionality
+            function exportAsTemplate(templateName, options) {
+                try {
+                    // Get current grid data
+                    const currentData = hot.getData();
+                    
+                    // Create a template object
+                    const template = {
+                        id: 'template_' + Date.now(),
+                        name: templateName,
+                        created: Date.now(),
+                        data: options.includeData ? currentData : [],
+                        formatting: options.includeFormatting ? getGridFormatting() : null,
+                        formulas: options.includeFormulas ? getGridFormulas() : null
+                    };
+                    
+                    // Save the template
+                    saveTemplate(template);
+                    
+                    showNotification(`Template "${templateName}" saved successfully`, 'success');
+                } catch (error) {
+                    console.error('Error exporting template:', error);
+                    showNotification('Error exporting template: ' + error.message, 'error');
+                }
+            }
+            
+            // Helper functions for template storage
+            function getSavedTemplates() {
+                try {
+                    const templates = localStorage.getItem('piltTemplates');
+                    return templates ? JSON.parse(templates) : [];
+                } catch (error) {
+                    console.error('Error retrieving templates:', error);
+                    return [];
+                }
+            }
+            
+            function saveTemplate(template) {
+                try {
+                    const templates = getSavedTemplates();
+                    templates.push(template);
+                    localStorage.setItem('piltTemplates', JSON.stringify(templates));
+                } catch (error) {
+                    console.error('Error saving template:', error);
+                    throw error;
+                }
+            }
+            
+            function loadSavedTemplate(templateId) {
+                try {
+                    const templates = getSavedTemplates();
+                    const template = templates.find(t => t.id === templateId);
+                    
+                    if (!template) {
+                        showNotification('Template not found', 'error');
+                        return;
+                    }
+                    
+                    // Load the template data
+                    if (template.data && template.data.length > 0) {
+                        hot.loadData(template.data);
+                    }
+                    
+                    // Apply formatting if available
+                    if (template.formatting) {
+                        applyTemplateFormatting(template.formatting);
+                    }
+                    
+                    // Apply formulas if available
+                    if (template.formulas) {
+                        applyTemplateFormulas(template.formulas);
+                    }
+                    
+                    showNotification(`Template "${template.name}" loaded successfully`, 'success');
+                } catch (error) {
+                    console.error('Error loading saved template:', error);
+                    showNotification('Error loading template: ' + error.message, 'error');
+                }
+            }
+            
+            function deleteTemplate(templateId) {
+                try {
+                    let templates = getSavedTemplates();
+                    templates = templates.filter(t => t.id !== templateId);
+                    localStorage.setItem('piltTemplates', JSON.stringify(templates));
+                    showNotification('Template deleted successfully', 'success');
+                } catch (error) {
+                    console.error('Error deleting template:', error);
+                    showNotification('Error deleting template: ' + error.message, 'error');
+                }
+            }
+            
+            // Template import/export utility functions
+            function getStandardTemplate() {
+                return {
+                    name: 'PILT Standard Template',
+                    data: [
+                        ['District', 'Assessed Value', 'Levy Rate', 'Deduction', 'Base PILT', 'PILT Due'],
+                        ['Fire District #1', '', '', '', '', ''],
+                        ['School District #1', '', '', '', '', ''],
+                        ['City of Example', '', '', '', '', ''],
+                        ['Hospital District', '', '', '', '', ''],
+                        ['Conservation District', '', '', '', '', ''],
+                        ['Port District', '', '', '', '', ''],
+                        ['Library District', '', '', '', '', '']
+                    ],
+                    formatting: {
+                        headers: true,
+                        currency: [1, 3, 4, 5], // Columns with currency format
+                        percentage: [2] // Columns with percentage format
+                    }
+                };
+            }
+            
+            function getBentonCountyTemplate() {
+                return {
+                    name: 'Benton County Format',
+                    data: [
+                        ['Tax District', 'Assessed Property Value', 'District Rate', 'Credit Amount', 'Raw PILT', 'Final PILT'],
+                        ['Benton County Fire #1', '', '', '', '', ''],
+                        ['Benton Schools District #52', '', '', '', '', ''],
+                        ['Richland City', '', '', '', '', ''],
+                        ['Kadlec Medical Center', '', '', '', '', ''],
+                        ['Benton Conservation', '', '', '', '', ''],
+                        ['Port of Benton', '', '', '', '', ''],
+                        ['Mid-Columbia Library', '', '', '', '', '']
+                    ],
+                    formatting: {
+                        headers: true,
+                        currency: [1, 3, 4, 5],
+                        percentage: [2]
+                    }
+                };
+            }
+            
+            function getHistoricalTemplate() {
+                return {
+                    name: 'Historical Comparison Template',
+                    data: [
+                        ['District', 'Assessed Value 2023', 'Levy Rate 2023', 'PILT Due 2023', 'Assessed Value 2024', 'Levy Rate 2024', 'PILT Due 2024', 'Assessed Value 2025', 'Levy Rate 2025', 'PILT Due 2025', 'YoY Change %'],
+                        ['Fire District #1', '', '', '', '', '', '', '', '', '', ''],
+                        ['School District #1', '', '', '', '', '', '', '', '', '', ''],
+                        ['City of Example', '', '', '', '', '', '', '', '', '', ''],
+                        ['Hospital District', '', '', '', '', '', '', '', '', '', ''],
+                        ['Conservation District', '', '', '', '', '', '', '', '', '', ''],
+                        ['Port District', '', '', '', '', '', '', '', '', '', ''],
+                        ['Library District', '', '', '', '', '', '', '', '', '', '']
+                    ],
+                    formatting: {
+                        headers: true,
+                        currency: [1, 3, 4, 6, 7, 9],
+                        percentage: [2, 5, 8, 10]
+                    }
+                };
+            }
+            
+            function getGridFormatting() {
+                // Get formatting information like cell styles, merges, etc.
+                // This would be customized based on how your grid stores formatting
+                return {
+                    cellStyles: hot.getSettings().cell || [],
+                    mergedCells: hot.getPlugin('mergeCells').mergedCellsCollection.mergedCells || [],
+                    columnWidths: [...Array(hot.countCols())].map((_, i) => hot.getColWidth(i))
+                };
+            }
+            
+            function getGridFormulas() {
+                // Extract formulas from the grid if you're tracking them
+                // This is a placeholder - implementation depends on how you track formulas
+                return {};
+            }
+            
+            function applyTemplateFormatting(formatting) {
+                if (!formatting) return;
+                
+                // Apply cell styles
+                if (formatting.cellStyles && formatting.cellStyles.length > 0) {
+                    hot.updateSettings({
+                        cell: formatting.cellStyles
+                    });
+                }
+                
+                // Apply merged cells
+                if (formatting.mergedCells && formatting.mergedCells.length > 0) {
+                    const mergeCells = hot.getPlugin('mergeCells');
+                    formatting.mergedCells.forEach(merge => {
+                        mergeCells.merge(merge.row, merge.col, merge.rowspan, merge.colspan);
+                    });
+                }
+                
+                // Apply column widths
+                if (formatting.columnWidths && formatting.columnWidths.length > 0) {
+                    formatting.columnWidths.forEach((width, index) => {
+                        if (width) hot.setColumnWidth(index, width);
+                    });
+                }
+                
+                hot.render();
+            }
+            
+            function applyTemplateFormulas(formulas) {
+                // Apply any saved formulas to the grid
+                // Implementation depends on how you handle formulas
+                if (!formulas) return;
+                
+                // Example implementation if formulas are stored as {row, col, formula}
+                if (formulas.cells) {
+                    formulas.cells.forEach(cell => {
+                        // Assuming you have a way to set formulas in cells
+                        // hot.setCellFormula(cell.row, cell.col, cell.formula);
+                    });
+                }
+            }
+            
+            // Clear all templates button functionality
+            document.getElementById('clear-all-templates-btn').addEventListener('click', function() {
+                if (confirm('Are you sure you want to delete all saved templates? This cannot be undone.')) {
+                    try {
+                        localStorage.removeItem('piltTemplates');
+                        loadSavedTemplates(); // Refresh the list
+                        showNotification('All templates cleared successfully', 'success');
+                    } catch (error) {
+                        console.error('Error clearing templates:', error);
+                        showNotification('Error clearing templates: ' + error.message, 'error');
+                    }
+                }
+            });
+            
+            // Import template file button
+            document.getElementById('import-template-file-btn').addEventListener('click', function() {
+                document.getElementById('custom-template-upload').click();
+            });
         });
     </script>
     
