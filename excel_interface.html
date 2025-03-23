@@ -543,6 +543,12 @@
                     <div class="toolbar-separator"></div>
                     
                     <div class="toolbar-group">
+                        <button id="template-btn" title="Templates"><i class="fas fa-file-contract"></i></button>
+                    </div>
+                    
+                    <div class="toolbar-separator"></div>
+                    
+                    <div class="toolbar-group">
                         <button id="cut-btn" title="Cut"><i class="fas fa-cut"></i></button>
                         <button id="copy-btn" title="Copy"><i class="fas fa-copy"></i></button>
                         <button id="paste-btn" title="Paste"><i class="fas fa-paste"></i></button>
@@ -2684,6 +2690,126 @@
         </div>
         <div class="ai-tooltip-footer">
             <small>Powered by AI Assistant</small>
+        </div>
+    </div>
+    
+    <!-- Template Modal -->
+    <div id="template-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Excel Templates</h2>
+                <span class="close" id="close-template-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="tab-buttons">
+                    <button class="tab-button active" data-tab="import-template">Import Template</button>
+                    <button class="tab-button" data-tab="export-template">Export as Template</button>
+                    <button class="tab-button" data-tab="manage-templates">Manage Templates</button>
+                </div>
+                
+                <div id="import-template" class="template-tab active">
+                    <p>Import an Excel template to use with PILT Dashboard:</p>
+                    
+                    <div class="template-section">
+                        <h3>Standard Templates</h3>
+                        <div class="template-list">
+                            <div class="template-item">
+                                <div class="template-icon"><i class="fas fa-file-excel"></i></div>
+                                <div class="template-info">
+                                    <div class="template-name">PILT Standard Template</div>
+                                    <div class="template-description">Default template for PILT calculations</div>
+                                </div>
+                                <button class="use-template-btn" data-template="standard">Use</button>
+                            </div>
+                            <div class="template-item">
+                                <div class="template-icon"><i class="fas fa-file-excel"></i></div>
+                                <div class="template-info">
+                                    <div class="template-name">Benton County Format</div>
+                                    <div class="template-description">Compatible with county systems</div>
+                                </div>
+                                <button class="use-template-btn" data-template="benton">Use</button>
+                            </div>
+                            <div class="template-item">
+                                <div class="template-icon"><i class="fas fa-file-excel"></i></div>
+                                <div class="template-info">
+                                    <div class="template-name">Historical Comparison</div>
+                                    <div class="template-description">Template with historical data columns</div>
+                                </div>
+                                <button class="use-template-btn" data-template="historical">Use</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="template-section">
+                        <h3>Upload Custom Template</h3>
+                        <p>Upload your own Excel template:</p>
+                        <div class="file-upload-container">
+                            <input type="file" id="custom-template-upload" accept=".xlsx,.xls">
+                            <button id="upload-custom-template-btn" class="primary-button">Upload Template</button>
+                        </div>
+                        <div class="template-note">
+                            <i class="fas fa-info-circle"></i> 
+                            Custom templates must have columns for District, Assessed Value, and Levy Rate.
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="export-template" class="template-tab">
+                    <p>Export your current data as a reusable template:</p>
+                    
+                    <div class="export-template-form">
+                        <div class="form-group">
+                            <label for="template-name">Template Name</label>
+                            <input type="text" id="template-name" placeholder="Enter a name for this template">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="template-description">Description</label>
+                            <textarea id="template-description" placeholder="Describe what this template is for"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Include in Template:</label>
+                            <div class="checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="include-formulas" checked> Formulas
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="include-data" checked> Data
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="include-formatting" checked> Formatting
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <button id="export-as-template-btn" class="primary-button">Export as Template</button>
+                    </div>
+                    
+                    <div class="template-note">
+                        <i class="fas fa-info-circle"></i> 
+                        Exported templates will be saved to your browser and can be used in future sessions.
+                    </div>
+                </div>
+                
+                <div id="manage-templates" class="template-tab">
+                    <p>Manage your saved templates:</p>
+                    
+                    <div id="saved-templates-list" class="template-list">
+                        <!-- Saved templates will be listed here -->
+                        <div class="no-templates-message">No saved templates yet.</div>
+                    </div>
+                    
+                    <div class="template-actions">
+                        <button id="import-template-file-btn" class="secondary-button">
+                            <i class="fas fa-file-import"></i> Import Template File
+                        </button>
+                        <button id="clear-all-templates-btn" class="secondary-button" style="background-color: #dc3545; color: white;">
+                            <i class="fas fa-trash-alt"></i> Clear All Templates
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </body>
