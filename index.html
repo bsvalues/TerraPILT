@@ -584,8 +584,8 @@
                 tableBody.innerHTML = '';
                 
                 // Add comparison rows
-                piltResults.forEach((district, i) => {
-                    const adjustedDistrict = adjustedResults[i];
+                piltData.forEach((district, i) => {
+                    const adjustedDistrict = adjustedResults.data[i];
                     const difference = adjustedDistrict.piltDue - district.piltDue;
                     const percentChange = district.piltDue !== 0 ? difference / district.piltDue : 0;
                     
@@ -732,6 +732,7 @@
                         // Update the dashboard with new data
                         window.districtData = newDistrictData;
                         piltResults = window.calculatePILT(newDistrictData);
+                        piltData = piltResults.data || [];
                         const totals = window.aggregatePILT(piltResults);
                         
                         // Update the UI
@@ -788,7 +789,7 @@
                 // Add PILT table
                 doc.autoTable({
                     head: [['District', 'Assessed Value', 'Levy Rate', 'Base PILT', 'Deduction', 'PILT Due']],
-                    body: piltResults.map(district => [
+                    body: piltData.map(district => [
                         district.district,
                         formatCurrency(district.assessedValue),
                         formatRate(district.levyRate),
@@ -1084,6 +1085,7 @@
                     
                     // Recalculate PILT
                     piltResults = window.calculatePILT(districtData);
+                    piltData = piltResults.data || [];
                     const totals = window.aggregatePILT(piltResults);
                     
                     // Update district select dropdown

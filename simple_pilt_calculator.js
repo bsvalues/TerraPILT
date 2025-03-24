@@ -101,15 +101,16 @@ function calculatePILT(districts) {
 
 /**
  * Aggregate PILT data to get totals
- * @param {Array} piltData - Array of PILT calculations by district
+ * @param {Object} piltResults - Object containing PILT calculations by district
  * @returns {Object} - Aggregated totals
  */
-function aggregatePILT(piltData) {
+function aggregatePILT(piltResults) {
+  const piltData = piltResults.data || [];
   return piltData.reduce((totals, district) => {
     return {
       assessedValue: totals.assessedValue + district.assessedValue,
       basePILT: totals.basePILT + district.basePILT,
-      deduction: totals.deduction + district.deduction,
+      deduction: totals.deduction + (district.deduction || 0),
       piltDue: totals.piltDue + district.piltDue
     };
   }, { assessedValue: 0, basePILT: 0, deduction: 0, piltDue: 0 });
