@@ -409,7 +409,8 @@
             // Get data from the calculator module
             const districtData = window.districtData || [];
             let piltResults = window.calculatePILT(districtData);
-            const totals = window.aggregatePILT(piltResults);
+            let piltData = piltResults.data || [];
+            const totals = window.aggregatePILT(piltData);
             
             // Populate district select dropdown
             const districtSelect = document.getElementById('districtSelect');
@@ -429,7 +430,7 @@
                 tableBody.innerHTML = '';
                 
                 // Add data rows
-                piltResults.forEach(district => {
+                piltData.forEach(district => {
                     const row = document.createElement('tr');
                     
                     row.innerHTML = `
@@ -463,7 +464,7 @@
             
             function generateChart() {
                 const chartContainer = document.getElementById('chartContainer');
-                const maxValue = Math.max(...piltResults.map(d => d.piltDue));
+                const maxValue = Math.max(...piltData.map(d => d.piltDue));
                 const chartWidth = 600;
                 const chartHeight = 250;
                 const padding = { top: 40, right: 50, bottom: 50, left: 100 };
@@ -491,10 +492,10 @@
                 `;
                 
                 // Plot bars
-                const barWidth = (chartWidth - padding.left - padding.right) / piltResults.length - 10;
+                const barWidth = (chartWidth - padding.left - padding.right) / piltData.length - 10;
                 const chartArea = chartHeight - padding.top - padding.bottom;
                 
-                piltResults.forEach((district, i) => {
+                piltData.forEach((district, i) => {
                     const x = padding.left + i * (barWidth + 10) + 5;
                     const barHeight = (district.piltDue / maxValue) * chartArea;
                     const y = chartHeight - padding.bottom - barHeight;
