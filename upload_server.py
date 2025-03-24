@@ -54,26 +54,65 @@ class PILTRequestHandler(http.server.SimpleHTTPRequestHandler):
                 if 'file' in form:
                     fileitem = form['file']
                     if fileitem.filename:
-                        # Save the file
-                        file_path = os.path.join('uploads', fileitem.filename)
-                        os.makedirs('uploads', exist_ok=True)
-                        
-                        with open(file_path, 'wb') as f:
-                            f.write(fileitem.file.read())
-                        
-                        # Respond with success
-                        self.send_response(200)
-                        self.send_header('Content-type', 'application/json')
-                        self.send_header('Access-Control-Allow-Origin', '*')
-                        self.end_headers()
-                        
-                        response = {
-                            'success': True,
-                            'message': f'File {fileitem.filename} uploaded successfully',
-                            'filename': fileitem.filename
-                        }
-                        self.wfile.write(json.dumps(response).encode())
-                        return
+                        try:
+                            # Ensure directory exists
+                            os.makedirs('uploads', exist_ok=True)
+                            
+                            # Sanitize filename to prevent path traversal attacks
+                            safe_filename = os.path.basename(fileitem.filename)
+                            file_path = os.path.join('uploads', safe_filename)
+                            
+                            # Check if the file is an Excel file
+                            if not (safe_filename.endswith('.xlsx') or safe_filename.endswith('.xls')):
+                                self.send_response(400)
+                                self.send_header('Content-type', 'application/json')
+                                self.send_header('Access-Control-Allow-Origin', '*')
+                                self.end_headers()
+                                
+                                response = {
+                                    'success': False,
+                                    'message': 'Only Excel files (.xlsx, .xls) are supported'
+                                }
+                                self.wfile.write(json.dumps(response).encode())
+                                return
+                            
+                            # Save the file
+                            with open(file_path, 'wb') as f:
+                                file_content = fileitem.file.read()
+                                if not file_content:
+                                    raise ValueError("Uploaded file is empty")
+                                f.write(file_content)
+                            
+                            # Check if file was saved successfully
+                            if not os.path.exists(file_path):
+                                raise FileNotFoundError("Failed to save the uploaded file")
+                                
+                            # Respond with success
+                            self.send_response(200)
+                            self.send_header('Content-type', 'application/json')
+                            self.send_header('Access-Control-Allow-Origin', '*')
+                            self.end_headers()
+                            
+                            response = {
+                                'success': True,
+                                'message': f'File {safe_filename} uploaded successfully',
+                                'filename': safe_filename
+                            }
+                            self.wfile.write(json.dumps(response).encode())
+                            return
+                            
+                        except Exception as e:
+                            self.send_response(500)
+                            self.send_header('Content-type', 'application/json')
+                            self.send_header('Access-Control-Allow-Origin', '*')
+                            self.end_headers()
+                            
+                            response = {
+                                'success': False,
+                                'message': f'Error saving file: {str(e)}'
+                            }
+                            self.wfile.write(json.dumps(response).encode())
+                            return
             
             # If we get here, something went wrong
             self.send_response(400)

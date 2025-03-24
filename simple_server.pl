@@ -58,12 +58,12 @@ while (my $client = $server->accept()) {
     
     # Special handling for /list_files
     if ($path eq 'list_files') {
-        my $asset_file = 'attached_assets/PILT Tables Wookbook_2025.xlsx';
+        my $asset_file = 'attached_assets/PILT Tables Workbook_2025.xlsx';
         my $json = '{
             "success": true,
             "files": [
                 {
-                    "filename": "PILT Tables Wookbook_2025.xlsx",
+                    "filename": "PILT Tables Workbook_2025.xlsx",
                     "path": "' . $asset_file . '",
                     "source": "asset"
                 }

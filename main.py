@@ -125,15 +125,22 @@ if st.session_state.pilt_data is not None and not st.session_state.pilt_data.emp
     with tab1:
         st.header("Raw Property Data")
         # Add filters
-        if 'District' in st.session_state.pilt_data.columns:
+        if 'District' in st.session_state.pilt_data.columns and len(st.session_state.pilt_data['District'].unique()) > 0:
+            district_options = st.session_state.pilt_data['District'].unique()
+            default_option = district_options[0] if len(district_options) > 0 else None
             district_filter = st.multiselect(
                 "Filter by District", 
-                options=st.session_state.pilt_data['District'].unique(),
-                default=st.session_state.pilt_data['District'].unique()[0]
+                options=district_options,
+                default=default_option
             )
-            filtered_data = st.session_state.pilt_data[
-                st.session_state.pilt_data['District'].isin(district_filter)]
+            
+            if district_filter:  # Only filter if options are selected
+                filtered_data = st.session_state.pilt_data[
+                    st.session_state.pilt_data['District'].isin(district_filter)]
+            else:
+                filtered_data = st.session_state.pilt_data
         else:
+            st.info("No 'District' column found in the data. Showing all data without filtering.")
             filtered_data = st.session_state.pilt_data
             
         # Display raw data
@@ -153,13 +160,16 @@ if st.session_state.pilt_data is not None and not st.session_state.pilt_data.emp
         use_deductions = st.checkbox("Apply Deductions")
         if use_deductions:
             st.info("Enter deduction amounts for specific districts if applicable")
-            for district in st.session_state.pilt_data['District'].unique():
-                deduction = st.number_input(f"Deduction for {district}", 
-                                          min_value=0.0, 
-                                          step=1000.0,
-                                          format="%.2f")
-                if deduction > 0:
-                    deductions[district] = deduction
+            if 'District' in st.session_state.pilt_data.columns and len(st.session_state.pilt_data['District'].unique()) > 0:
+                for district in st.session_state.pilt_data['District'].unique():
+                    deduction = st.number_input(f"Deduction for {district}", 
+                                              min_value=0.0, 
+                                              step=1000.0,
+                                              format="%.2f")
+                    if deduction > 0:
+                        deductions[district] = deduction
+            else:
+                st.warning("No 'District' column found in data. Deductions cannot be applied by district.")
         
         # Calculate PILT
         if st.button("Calculate PILT"):
