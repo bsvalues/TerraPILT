@@ -494,6 +494,148 @@
             background-color: #e3f2fd;
         }
         
+        /* Dashboard widgets */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .widget {
+            background-color: #fff;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            padding: 15px;
+            position: relative;
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+        
+        .widget.large {
+            grid-column: span 2;
+        }
+        
+        .widget.extra-large {
+            grid-column: span 3;
+        }
+        
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .widget-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .widget-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .widget-action {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        .widget-action:hover {
+            background-color: #f0f0f0;
+            color: #0077b6;
+        }
+        
+        .widget-content {
+            position: relative;
+            min-height: 100px;
+        }
+        
+        .widget-handle {
+            cursor: move;
+            display: inline-block;
+            margin-right: 8px;
+            color: #999;
+            transition: color 0.2s;
+        }
+        
+        .widget-handle:hover {
+            color: #0077b6;
+        }
+        
+        .widget-placeholder {
+            border: 2px dashed #ccc;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+            min-height: 100px;
+        }
+        
+        .widget-customize-button {
+            position: absolute;
+            top: -5px;
+            right: 5px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .widget:hover .widget-customize-button {
+            opacity: 1;
+        }
+        
+        .dashboard-actions {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .add-widget-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .add-widget-content {
+            display: none;
+            position: absolute;
+            background-color: #fff;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 10;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .add-widget-content a {
+            color: #333;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .add-widget-content a:hover {
+            background-color: #f1f1f1;
+        }
+        
+        .add-widget-dropdown:hover .add-widget-content {
+            display: block;
+        }
+        
         /* Responsive design */
         @media screen and (max-width: 768px) {
             .grid {
@@ -513,6 +655,14 @@
             table {
                 display: block;
                 overflow-x: auto;
+            }
+            
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .widget.large, .widget.extra-large {
+                grid-column: span 1;
             }
         }
     </style>
@@ -580,11 +730,135 @@
 
         <div class="tabs">
             <div class="tab active" data-tab="current">Current PILT</div>
+            <div class="tab" data-tab="dashboard">Custom Dashboard</div>
             <div class="tab" data-tab="whatif">What-If Analysis</div>
             <div class="tab" data-tab="ai-insights">AI Insights</div>
             <div class="tab" data-tab="settings">Settings</div>
         </div>
 
+        <div id="dashboard" class="tab-content">
+            <div class="card">
+                <h2>Customizable Dashboard</h2>
+                <p>Drag and drop widgets, resize them, and configure your own custom dashboard layout.</p>
+                
+                <div class="dashboard-actions">
+                    <div class="add-widget-dropdown">
+                        <button class="dropdown-toggle">Add Widget <span class="dropdown-arrow">▼</span></button>
+                        <div class="add-widget-content">
+                            <a href="#" data-widget-type="summary">PILT Summary</a>
+                            <a href="#" data-widget-type="bar-chart">Bar Chart</a>
+                            <a href="#" data-widget-type="pie-chart">Pie Chart</a>
+                            <a href="#" data-widget-type="line-chart">Line Chart</a>
+                            <a href="#" data-widget-type="table">Data Table</a>
+                            <a href="#" data-widget-type="metrics">Key Metrics</a>
+                        </div>
+                    </div>
+                    <div>
+                        <button id="saveDashboardBtn" class="primary-button">Save Layout</button>
+                        <button id="resetDashboardBtn" class="secondary-button">Reset Layout</button>
+                    </div>
+                </div>
+                
+                <div id="dashboardContainer" class="dashboard-container">
+                    <!-- Widgets will be added here dynamically -->
+                    <div class="widget" data-widget-id="summary">
+                        <div class="widget-header">
+                            <div>
+                                <span class="widget-handle">≡</span>
+                                <span class="widget-title">PILT Summary</span>
+                            </div>
+                            <div class="widget-actions">
+                                <button class="widget-action resize-widget" data-size="normal">Normal</button>
+                                <button class="widget-action resize-widget" data-size="large">Large</button>
+                                <button class="widget-action remove-widget">×</button>
+                            </div>
+                        </div>
+                        <div class="widget-content">
+                            <div class="metrics-container">
+                                <div class="metric">
+                                    <h3>Total PILT Due</h3>
+                                    <p class="metric-value">$0.00</p>
+                                </div>
+                                <div class="metric">
+                                    <h3>Total Assessed Value</h3>
+                                    <p class="metric-value">$0.00</p>
+                                </div>
+                                <div class="metric">
+                                    <h3>Average Levy Rate</h3>
+                                    <p class="metric-value">0.0000</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="widget large" data-widget-id="bar-chart">
+                        <div class="widget-header">
+                            <div>
+                                <span class="widget-handle">≡</span>
+                                <span class="widget-title">PILT Due by District</span>
+                            </div>
+                            <div class="widget-actions">
+                                <button class="widget-action resize-widget" data-size="normal">Normal</button>
+                                <button class="widget-action resize-widget" data-size="large">Large</button>
+                                <button class="widget-action resize-widget" data-size="extra-large">X-Large</button>
+                                <button class="widget-action remove-widget">×</button>
+                            </div>
+                        </div>
+                        <div class="widget-content">
+                            <div class="widget-chart" style="height: 250px;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="widget" data-widget-id="pie-chart">
+                        <div class="widget-header">
+                            <div>
+                                <span class="widget-handle">≡</span>
+                                <span class="widget-title">Distribution</span>
+                            </div>
+                            <div class="widget-actions">
+                                <button class="widget-action resize-widget" data-size="normal">Normal</button>
+                                <button class="widget-action resize-widget" data-size="large">Large</button>
+                                <button class="widget-action remove-widget">×</button>
+                            </div>
+                        </div>
+                        <div class="widget-content">
+                            <div class="widget-chart" style="height: 200px;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="widget large" data-widget-id="table">
+                        <div class="widget-header">
+                            <div>
+                                <span class="widget-handle">≡</span>
+                                <span class="widget-title">Top Districts</span>
+                            </div>
+                            <div class="widget-actions">
+                                <button class="widget-action resize-widget" data-size="normal">Normal</button>
+                                <button class="widget-action resize-widget" data-size="large">Large</button>
+                                <button class="widget-action remove-widget">×</button>
+                            </div>
+                        </div>
+                        <div class="widget-content">
+                            <div class="widget-table-container" style="max-height: 200px; overflow-y: auto;">
+                                <table class="widget-table">
+                                    <thead>
+                                        <tr>
+                                            <th>District</th>
+                                            <th>PILT Due</th>
+                                            <th>% of Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Will be filled dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <div id="current" class="tab-content active">
             <div class="card">
                 <h2>PILT Summary by District</h2>
@@ -838,6 +1112,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="simple_pilt_calculator.js"></script>
     <script src="ai_assistant.js"></script>
     <script>
@@ -1925,6 +2200,16 @@
                     this.classList.add('active');
                     const tabId = this.getAttribute('data-tab');
                     document.getElementById(tabId).classList.add('active');
+                    
+                    // If charts tab, regenerate chart
+                    if (tabId === 'current') {
+                        generateChart();
+                    }
+                    
+                    // If dashboard tab, initialize dashboard widgets
+                    if (tabId === 'dashboard') {
+                        initDashboard();
+                    }
                 });
             });
             
@@ -3145,6 +3430,596 @@
             document.addEventListener('DOMContentLoaded', function() {
                 checkAndShowApiKeyNotice();
             });
+            
+            // Dashboard functionality
+            function initDashboard() {
+                // Initialize metrics and data in dashboard widgets
+                updateDashboardWidgets();
+                
+                // Initialize drag-and-drop functionality
+                initDragDrop();
+                
+                // Add event listeners for widget actions
+                initWidgetActions();
+                
+                // Initialize "Add Widget" functionality
+                initAddWidgetFunctionality();
+                
+                // Save and reset dashboard layout
+                initDashboardLayoutControls();
+                
+                // Try to load saved layout
+                loadDashboardLayout();
+            }
+            
+            function updateDashboardWidgets() {
+                // Update summary widget with current data
+                const totalPiltValue = document.querySelector('[data-widget-id="summary"] .metric:nth-child(1) .metric-value');
+                const totalAssessedValue = document.querySelector('[data-widget-id="summary"] .metric:nth-child(2) .metric-value');
+                const avgLevyRate = document.querySelector('[data-widget-id="summary"] .metric:nth-child(3) .metric-value');
+                
+                if (totalPiltValue) totalPiltValue.textContent = formatCurrency(totals.piltDue);
+                if (totalAssessedValue) totalAssessedValue.textContent = formatCurrency(totals.assessedValue);
+                
+                // Calculate average levy rate
+                const avgLevy = piltData.reduce((sum, district) => sum + district.levyRate, 0) / piltData.length;
+                if (avgLevyRate) avgLevyRate.textContent = formatRate(avgLevy);
+                
+                // Generate charts for chart widgets
+                generateWidgetCharts();
+                
+                // Update table widget with top districts by PILT
+                updateTableWidget();
+            }
+            
+            function generateWidgetCharts() {
+                // Generate bar chart for bar chart widget
+                const barChartWidget = document.querySelector('[data-widget-id="bar-chart"] .widget-chart');
+                if (barChartWidget) {
+                    generateWidgetBarChart(barChartWidget);
+                }
+                
+                // Generate pie chart for pie chart widget
+                const pieChartWidget = document.querySelector('[data-widget-id="pie-chart"] .widget-chart');
+                if (pieChartWidget) {
+                    generateWidgetPieChart(pieChartWidget);
+                }
+            }
+            
+            function generateWidgetBarChart(container) {
+                // Sort data by PILT due (descending)
+                const sortedData = [...piltData].sort((a, b) => b.piltDue - a.piltDue);
+                
+                // Take top 5 districts
+                const topData = sortedData.slice(0, 5);
+                
+                // Get container dimensions
+                const width = container.clientWidth || 300;
+                const height = container.clientHeight || 200;
+                
+                // Chart settings
+                const padding = { top: 30, right: 15, bottom: 40, left: 50 };
+                const barSpacing = 5;
+                const maxValue = Math.max(...topData.map(d => d.piltDue));
+                
+                // Create SVG
+                let svg = `
+                    <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}">
+                        <style>
+                            .bar { fill: #0077b6; }
+                            .bar:hover { fill: #00507a; }
+                            .axis { stroke: #333; stroke-width: 1; }
+                            .label { font-family: sans-serif; font-size: 10px; }
+                            .title { font-family: sans-serif; font-size: 14px; font-weight: bold; }
+                        </style>
+                        <text x="${width/2}" y="15" text-anchor="middle" class="title">Top 5 Districts by PILT Due</text>
+                `;
+                
+                // X and Y axes
+                svg += `
+                    <line x1="${padding.left}" y1="${height - padding.bottom}" 
+                          x2="${width - padding.right}" y2="${height - padding.bottom}" class="axis"/>
+                    <line x1="${padding.left}" y1="${padding.top}" 
+                          x2="${padding.left}" y2="${height - padding.bottom}" class="axis"/>
+                `;
+                
+                // Plot bars
+                const barWidth = (width - padding.left - padding.right - (barSpacing * (topData.length - 1))) / topData.length;
+                
+                topData.forEach((district, i) => {
+                    const barHeight = ((height - padding.top - padding.bottom) * district.piltDue) / maxValue;
+                    const x = padding.left + (i * (barWidth + barSpacing));
+                    const y = height - padding.bottom - barHeight;
+                    
+                    svg += `
+                        <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" class="bar"
+                              data-district="${district.district}" data-value="${district.piltDue}"/>
+                    `;
+                    
+                    // District name label (truncate if too long)
+                    let districtName = district.district;
+                    if (districtName.length > 10) {
+                        districtName = districtName.substring(0, 8) + '...';
+                    }
+                    
+                    svg += `
+                        <text x="${x + barWidth/2}" y="${height - padding.bottom + 15}" 
+                              text-anchor="middle" transform="rotate(45, ${x + barWidth/2}, ${height - padding.bottom + 15})" class="label">
+                            ${districtName}
+                        </text>
+                    `;
+                    
+                    // Value label
+                    svg += `
+                        <text x="${x + barWidth/2}" y="${y - 5}" text-anchor="middle" class="label">
+                            ${formatCurrency(district.piltDue).substring(0, 8)}
+                        </text>
+                    `;
+                });
+                
+                svg += `</svg>`;
+                container.innerHTML = svg;
+            }
+            
+            function generateWidgetPieChart(container) {
+                // Sort data by PILT due (descending)
+                const sortedData = [...piltData].sort((a, b) => b.piltDue - a.piltDue);
+                
+                // Take top 5 districts and combine the rest into "Others"
+                const topData = sortedData.slice(0, 4);
+                const otherData = sortedData.slice(4);
+                
+                const chartData = [...topData];
+                if (otherData.length > 0) {
+                    const otherTotal = otherData.reduce((sum, district) => sum + district.piltDue, 0);
+                    chartData.push({
+                        district: 'Others',
+                        piltDue: otherTotal
+                    });
+                }
+                
+                // Get container dimensions
+                const width = container.clientWidth || 200;
+                const height = container.clientHeight || 200;
+                
+                // Chart settings
+                const radius = Math.min(width, height) / 2 - 20;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                
+                // Calculate total PILT
+                const total = chartData.reduce((sum, district) => sum + district.piltDue, 0);
+                
+                // Colors for pie segments
+                const colors = ['#0077b6', '#00acc1', '#5bc0de', '#83dcb7', '#a8e6cf'];
+                
+                // Create SVG
+                let svg = `
+                    <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}">
+                        <style>
+                            .pie-segment:hover { opacity: 0.8; }
+                            .segment-label { font-family: sans-serif; font-size: 9px; }
+                            .title { font-family: sans-serif; font-size: 14px; font-weight: bold; }
+                        </style>
+                        <text x="${width/2}" y="15" text-anchor="middle" class="title">PILT Distribution</text>
+                `;
+                
+                // Draw pie
+                let startAngle = 0;
+                let legendY = centerY - radius;
+                
+                chartData.forEach((district, i) => {
+                    // Calculate angles
+                    const portion = district.piltDue / total;
+                    const angle = portion * 2 * Math.PI;
+                    const endAngle = startAngle + angle;
+                    
+                    // Calculate arc points
+                    const x1 = centerX + radius * Math.sin(startAngle);
+                    const y1 = centerY - radius * Math.cos(startAngle);
+                    const x2 = centerX + radius * Math.sin(endAngle);
+                    const y2 = centerY - radius * Math.cos(endAngle);
+                    
+                    // Determine if the arc should be large (> 180 degrees)
+                    const largeArcFlag = portion > 0.5 ? 1 : 0;
+                    
+                    // Draw pie segment
+                    svg += `
+                        <path d="M ${centerX},${centerY} L ${x1},${y1} A ${radius},${radius} 0 ${largeArcFlag},1 ${x2},${y2} Z"
+                              fill="${colors[i % colors.length]}" class="pie-segment"
+                              data-district="${district.district}" data-value="${district.piltDue}"/>
+                    `;
+                    
+                    // Calculate position for segment label (middle of the arc)
+                    const midAngle = startAngle + angle / 2;
+                    const labelRadius = radius * 0.7; // Position label at 70% of radius
+                    const labelX = centerX + labelRadius * Math.sin(midAngle);
+                    const labelY = centerY - labelRadius * Math.cos(midAngle);
+                    
+                    // Only show percentage for segments that are large enough
+                    if (portion > 0.08) {
+                        svg += `
+                            <text x="${labelX}" y="${labelY}" text-anchor="middle" fill="white" class="segment-label">
+                                ${Math.round(portion * 100)}%
+                            </text>
+                        `;
+                    }
+                    
+                    // Update start angle for next segment
+                    startAngle = endAngle;
+                    
+                    // Add to legend
+                    legendY += 18;
+                });
+                
+                svg += `</svg>`;
+                container.innerHTML = svg;
+            }
+            
+            function updateTableWidget() {
+                const tableWidget = document.querySelector('[data-widget-id="table"] .widget-table tbody');
+                if (!tableWidget) return;
+                
+                // Sort data by PILT due (descending)
+                const sortedData = [...piltData].sort((a, b) => b.piltDue - a.piltDue);
+                
+                // Calculate total PILT
+                const totalPilt = piltData.reduce((sum, district) => sum + district.piltDue, 0);
+                
+                // Clear existing rows
+                tableWidget.innerHTML = '';
+                
+                // Add rows for top districts
+                sortedData.slice(0, 5).forEach(district => {
+                    const percentage = district.piltDue / totalPilt;
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${district.district}</td>
+                        <td>${formatCurrency(district.piltDue)}</td>
+                        <td>${formatPercent(percentage)}</td>
+                    `;
+                    
+                    tableWidget.appendChild(row);
+                });
+            }
+            
+            function initDragDrop() {
+                const dashboardContainer = document.getElementById('dashboardContainer');
+                if (!dashboardContainer) return;
+                
+                Sortable.create(dashboardContainer, {
+                    animation: 150,
+                    handle: '.widget-handle',
+                    ghostClass: 'widget-placeholder',
+                    onEnd: function() {
+                        // Save the new layout to local storage
+                        saveDashboardLayout();
+                    }
+                });
+            }
+            
+            function initWidgetActions() {
+                // Widget resize functionality
+                document.querySelectorAll('.resize-widget').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const widget = e.target.closest('.widget');
+                        const size = e.target.getAttribute('data-size');
+                        
+                        // Remove existing size classes
+                        widget.classList.remove('large', 'extra-large');
+                        
+                        // Add new size class if not 'normal'
+                        if (size === 'large') {
+                            widget.classList.add('large');
+                        } else if (size === 'extra-large') {
+                            widget.classList.add('extra-large');
+                        }
+                        
+                        // Regenerate charts to fit new size
+                        generateWidgetCharts();
+                        
+                        // Save the new layout to local storage
+                        saveDashboardLayout();
+                    });
+                });
+                
+                // Widget remove functionality
+                document.querySelectorAll('.remove-widget').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const widget = e.target.closest('.widget');
+                        widget.remove();
+                        
+                        // Save the new layout to local storage
+                        saveDashboardLayout();
+                    });
+                });
+            }
+            
+            function initAddWidgetFunctionality() {
+                document.querySelectorAll('[data-widget-type]').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const widgetType = e.target.getAttribute('data-widget-type');
+                        addWidget(widgetType);
+                    });
+                });
+            }
+            
+            function addWidget(widgetType) {
+                // Create widget based on type
+                let widgetHTML = '';
+                let widgetId = widgetType + '-' + Date.now(); // Create unique ID
+                
+                switch(widgetType) {
+                    case 'summary':
+                        widgetHTML = `
+                            <div class="widget" data-widget-id="${widgetId}">
+                                <div class="widget-header">
+                                    <div>
+                                        <span class="widget-handle">≡</span>
+                                        <span class="widget-title">PILT Summary</span>
+                                    </div>
+                                    <div class="widget-actions">
+                                        <button class="widget-action resize-widget" data-size="normal">Normal</button>
+                                        <button class="widget-action resize-widget" data-size="large">Large</button>
+                                        <button class="widget-action remove-widget">×</button>
+                                    </div>
+                                </div>
+                                <div class="widget-content">
+                                    <div class="metrics-container">
+                                        <div class="metric">
+                                            <h3>Total PILT Due</h3>
+                                            <p class="metric-value">${formatCurrency(totals.piltDue)}</p>
+                                        </div>
+                                        <div class="metric">
+                                            <h3>Total Assessed Value</h3>
+                                            <p class="metric-value">${formatCurrency(totals.assessedValue)}</p>
+                                        </div>
+                                        <div class="metric">
+                                            <h3>Average Levy Rate</h3>
+                                            <p class="metric-value">${formatRate(piltData.reduce((sum, district) => sum + district.levyRate, 0) / piltData.length)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                        
+                    case 'bar-chart':
+                        widgetHTML = `
+                            <div class="widget" data-widget-id="${widgetId}">
+                                <div class="widget-header">
+                                    <div>
+                                        <span class="widget-handle">≡</span>
+                                        <span class="widget-title">PILT Due by District</span>
+                                    </div>
+                                    <div class="widget-actions">
+                                        <button class="widget-action resize-widget" data-size="normal">Normal</button>
+                                        <button class="widget-action resize-widget" data-size="large">Large</button>
+                                        <button class="widget-action resize-widget" data-size="extra-large">X-Large</button>
+                                        <button class="widget-action remove-widget">×</button>
+                                    </div>
+                                </div>
+                                <div class="widget-content">
+                                    <div class="widget-chart" style="height: 250px;"></div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                        
+                    case 'pie-chart':
+                        widgetHTML = `
+                            <div class="widget" data-widget-id="${widgetId}">
+                                <div class="widget-header">
+                                    <div>
+                                        <span class="widget-handle">≡</span>
+                                        <span class="widget-title">Distribution</span>
+                                    </div>
+                                    <div class="widget-actions">
+                                        <button class="widget-action resize-widget" data-size="normal">Normal</button>
+                                        <button class="widget-action resize-widget" data-size="large">Large</button>
+                                        <button class="widget-action remove-widget">×</button>
+                                    </div>
+                                </div>
+                                <div class="widget-content">
+                                    <div class="widget-chart" style="height: 200px;"></div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                        
+                    case 'table':
+                        widgetHTML = `
+                            <div class="widget" data-widget-id="${widgetId}">
+                                <div class="widget-header">
+                                    <div>
+                                        <span class="widget-handle">≡</span>
+                                        <span class="widget-title">Top Districts</span>
+                                    </div>
+                                    <div class="widget-actions">
+                                        <button class="widget-action resize-widget" data-size="normal">Normal</button>
+                                        <button class="widget-action resize-widget" data-size="large">Large</button>
+                                        <button class="widget-action remove-widget">×</button>
+                                    </div>
+                                </div>
+                                <div class="widget-content">
+                                    <div class="widget-table-container" style="max-height: 200px; overflow-y: auto;">
+                                        <table class="widget-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>District</th>
+                                                    <th>PILT Due</th>
+                                                    <th>% of Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Will be filled dynamically -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                        
+                    case 'line-chart':
+                        widgetHTML = `
+                            <div class="widget large" data-widget-id="${widgetId}">
+                                <div class="widget-header">
+                                    <div>
+                                        <span class="widget-handle">≡</span>
+                                        <span class="widget-title">Historical Trend</span>
+                                    </div>
+                                    <div class="widget-actions">
+                                        <button class="widget-action resize-widget" data-size="normal">Normal</button>
+                                        <button class="widget-action resize-widget" data-size="large">Large</button>
+                                        <button class="widget-action resize-widget" data-size="extra-large">X-Large</button>
+                                        <button class="widget-action remove-widget">×</button>
+                                    </div>
+                                </div>
+                                <div class="widget-content">
+                                    <div class="widget-chart" style="height: 250px;"></div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                        
+                    case 'metrics':
+                        // Create widget with key metrics from selected district
+                        const district = piltData[0] || { district: '', assessedValue: 0, levyRate: 0, piltDue: 0 };
+                        
+                        widgetHTML = `
+                            <div class="widget" data-widget-id="${widgetId}">
+                                <div class="widget-header">
+                                    <div>
+                                        <span class="widget-handle">≡</span>
+                                        <span class="widget-title">${district.district || 'District'} Metrics</span>
+                                    </div>
+                                    <div class="widget-actions">
+                                        <button class="widget-action resize-widget" data-size="normal">Normal</button>
+                                        <button class="widget-action resize-widget" data-size="large">Large</button>
+                                        <button class="widget-action remove-widget">×</button>
+                                    </div>
+                                </div>
+                                <div class="widget-content">
+                                    <div class="metrics-container">
+                                        <div class="metric">
+                                            <h3>PILT Due</h3>
+                                            <p class="metric-value">${formatCurrency(district.piltDue)}</p>
+                                        </div>
+                                        <div class="metric">
+                                            <h3>Assessed Value</h3>
+                                            <p class="metric-value">${formatCurrency(district.assessedValue)}</p>
+                                        </div>
+                                        <div class="metric">
+                                            <h3>Levy Rate</h3>
+                                            <p class="metric-value">${formatRate(district.levyRate)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                }
+                
+                // Add widget to dashboard
+                const dashboardContainer = document.getElementById('dashboardContainer');
+                dashboardContainer.insertAdjacentHTML('beforeend', widgetHTML);
+                
+                // Reinitialize widget actions
+                initWidgetActions();
+                
+                // Update widget content
+                updateDashboardWidgets();
+                
+                // Save the new layout to local storage
+                saveDashboardLayout();
+            }
+            
+            function saveDashboardLayout() {
+                const dashboardContainer = document.getElementById('dashboardContainer');
+                if (!dashboardContainer) return;
+                
+                // Get all widgets and their current configuration
+                const widgets = Array.from(dashboardContainer.querySelectorAll('.widget')).map(widget => {
+                    return {
+                        id: widget.getAttribute('data-widget-id'),
+                        type: widget.getAttribute('data-widget-id').split('-')[0],
+                        isLarge: widget.classList.contains('large'),
+                        isExtraLarge: widget.classList.contains('extra-large'),
+                        title: widget.querySelector('.widget-title').textContent
+                    };
+                });
+                
+                // Save to local storage
+                localStorage.setItem('piltDashboardLayout', JSON.stringify(widgets));
+            }
+            
+            function loadDashboardLayout() {
+                const savedLayout = localStorage.getItem('piltDashboardLayout');
+                if (!savedLayout) return false;
+                
+                try {
+                    // Clear existing dashboard
+                    const dashboardContainer = document.getElementById('dashboardContainer');
+                    dashboardContainer.innerHTML = '';
+                    
+                    // Parse saved layout
+                    const widgets = JSON.parse(savedLayout);
+                    
+                    // Recreate each widget
+                    widgets.forEach(widget => {
+                        // Call addWidget with the widget type
+                        addWidget(widget.type);
+                        
+                        // Get the newly added widget (last child)
+                        const newWidget = dashboardContainer.lastElementChild;
+                        
+                        // Apply saved configuration
+                        if (widget.isLarge) {
+                            newWidget.classList.add('large');
+                        } else if (widget.isExtraLarge) {
+                            newWidget.classList.add('extra-large');
+                        }
+                        
+                        // Update widget title if needed
+                        if (widget.title) {
+                            const titleElement = newWidget.querySelector('.widget-title');
+                            if (titleElement) {
+                                titleElement.textContent = widget.title;
+                            }
+                        }
+                    });
+                    
+                    return true;
+                } catch (err) {
+                    console.error("Error loading dashboard layout", err);
+                    return false;
+                }
+            }
+            
+            function initDashboardLayoutControls() {
+                // Save dashboard layout
+                const saveBtn = document.getElementById('saveDashboardBtn');
+                if (saveBtn) {
+                    saveBtn.addEventListener('click', () => {
+                        saveDashboardLayout();
+                        alert('Dashboard layout saved!');
+                    });
+                }
+                
+                // Reset dashboard layout
+                const resetBtn = document.getElementById('resetDashboardBtn');
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', () => {
+                        if (confirm('Are you sure you want to reset the dashboard layout?')) {
+                            localStorage.removeItem('piltDashboardLayout');
+                            location.reload();
+                        }
+                    });
+                }
+            }
         });
     </script>
 </body>
