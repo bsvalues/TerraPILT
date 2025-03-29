@@ -731,6 +731,87 @@
             opacity: 1;
         }
         
+        /* Dashboard Filter Panel */
+        .dashboard-filter-panel {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            padding: 15px;
+        }
+        
+        .filter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .filter-header h3 {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .filter-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
+        }
+        
+        .filter-group {
+            margin-bottom: 10px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .filter-select, .filter-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .filter-select[multiple] {
+            height: 120px;
+        }
+        
+        .filter-actions {
+            margin-top: 15px;
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .filter-tag {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .filter-tag-remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
         .dashboard-actions {
             margin-bottom: 20px;
             display: flex;
@@ -961,6 +1042,34 @@
             <div class="card">
                 <h2>Customizable Dashboard</h2>
                 <p>Drag and drop widgets, resize them, and configure your own custom dashboard layout.</p>
+                
+                <div class="dashboard-filter-panel">
+                    <div class="filter-header">
+                        <h3>Global Filters</h3>
+                        <button id="toggleFilterPanelBtn" class="small-button">Show/Hide Filters</button>
+                    </div>
+                    <div class="filter-content" style="display: none;">
+                        <div class="filter-group">
+                            <label>District Filter:</label>
+                            <select id="globalDistrictFilter" multiple class="filter-select">
+                                <!-- Will be populated dynamically -->
+                            </select>
+                            <p class="hint">Hold Ctrl/Cmd to select multiple districts</p>
+                        </div>
+                        <div class="filter-group">
+                            <label>Minimum Assessed Value:</label>
+                            <input type="number" id="minValueFilter" class="filter-input" placeholder="Min Value">
+                        </div>
+                        <div class="filter-group">
+                            <label>Minimum Levy Rate:</label>
+                            <input type="number" id="minRateFilter" class="filter-input" placeholder="Min Rate" step="0.0001">
+                        </div>
+                        <div class="filter-actions">
+                            <button id="applyFiltersBtn" class="primary-button">Apply Filters</button>
+                            <button id="clearFiltersBtn" class="secondary-button">Clear Filters</button>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="dashboard-actions">
                     <div class="add-widget-dropdown">
@@ -1340,6 +1449,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="simple_pilt_calculator.js"></script>
     <script src="ai_assistant.js"></script>
+    <script src="global_filter.js"></script>
+    <script src="filter_tests.js"></script>
     <script>
         // Format currency values
         function formatCurrency(value) {
@@ -1375,6 +1486,12 @@
             let piltResults = window.calculatePILT(districtData);
             let piltData = piltResults.data || [];
             const totals = window.aggregatePILT(piltData);
+            
+            // Make the piltData available globally for filtering
+            window.piltData = piltData;
+            
+            // Initialize global filtering system
+            initGlobalFilters();
             
             // Populate district select dropdown
             const districtSelect = document.getElementById('districtSelect');
@@ -3652,6 +3769,367 @@
             });
             
             // Check API key on page load
+            // Widget update functions for global filtering
+            // These functions will be called by the global filtering module
+            window.updateWidgetSummary = function(summaryWidget) {
+                if (!summaryWidget) return;
+                
+                // Calculate totals from filtered data
+                const totals = window.aggregatePILT(window.piltData);
+                
+                // Update metric values
+                const metricValues = summaryWidget.querySelectorAll('.metric-value');
+                if (metricValues.length >= 3) {
+                    metricValues[0].textContent = formatCurrency(totals.piltDue);
+                    metricValues[1].textContent = formatCurrency(totals.assessedValue);
+                    
+                    // Calculate average levy rate (weighted by assessed value)
+                    let totalWeightedRate = 0;
+                    let totalValue = 0;
+                    window.piltData.forEach(district => {
+                        totalWeightedRate += district.levyRate * district.assessedValue;
+                        totalValue += district.assessedValue;
+                    });
+                    
+                    const avgRate = totalValue > 0 ? totalWeightedRate / totalValue : 0;
+                    metricValues[2].textContent = formatRate(avgRate);
+                }
+            };
+            
+            window.regenerateWidgetChart = function(chartWidget) {
+                if (!chartWidget) return;
+                
+                const chartType = chartWidget.getAttribute('data-chart-type') || 'bar';
+                const dataField = chartWidget.getAttribute('data-field') || 'piltDue';
+                const chartDiv = chartWidget.querySelector('.widget-chart');
+                
+                if (!chartDiv) return;
+                
+                // Get data from the global filtered data
+                const data = window.piltData || [];
+                
+                // Sort data for better visualization
+                const sortedData = [...data].sort((a, b) => b[dataField] - a[dataField]);
+                
+                // Get chart dimensions
+                const width = chartDiv.clientWidth || 300;
+                const height = chartDiv.clientHeight || 200;
+                
+                // Generate chart SVG based on type
+                let svg = '';
+                
+                switch (chartType) {
+                    case 'bar':
+                        svg = generateBarChartSVG(sortedData, dataField, width, height);
+                        break;
+                    case 'pie':
+                        svg = generatePieChartSVG(sortedData, dataField, width, height);
+                        break;
+                    case 'line':
+                        svg = generateLineChartSVG(sortedData, dataField, width, height);
+                        break;
+                    default:
+                        svg = generateBarChartSVG(sortedData, dataField, width, height);
+                }
+                
+                // Update chart
+                chartDiv.innerHTML = svg;
+            };
+            
+            window.regenerateWidgetTable = function(tableWidget) {
+                if (!tableWidget) return;
+                
+                const tableContainer = tableWidget.querySelector('.widget-table-container');
+                if (!tableContainer) return;
+                
+                const table = tableContainer.querySelector('table');
+                if (!table) return;
+                
+                const tbody = table.querySelector('tbody');
+                if (!tbody) return;
+                
+                // Clear table
+                tbody.innerHTML = '';
+                
+                // Get data from the global filtered data
+                const data = window.piltData || [];
+                
+                // Sort data by PILT due (descending)
+                const sortedData = [...data].sort((a, b) => b.piltDue - a.piltDue);
+                
+                // Calculate totals for percentage
+                const totalPilt = sortedData.reduce((sum, d) => sum + d.piltDue, 0);
+                
+                // Generate rows
+                sortedData.forEach(district => {
+                    const row = document.createElement('tr');
+                    const percentage = totalPilt > 0 ? (district.piltDue / totalPilt) : 0;
+                    
+                    row.innerHTML = `
+                        <td>${district.district}</td>
+                        <td>${formatCurrency(district.piltDue)}</td>
+                        <td>${formatPercent(percentage)}</td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            };
+            
+            // Helper function for generating bar chart SVG
+            function generateBarChartSVG(data, field, width, height) {
+                const padding = { top: 20, right: 20, bottom: 40, left: 40 };
+                const chartWidth = width - padding.left - padding.right;
+                const chartHeight = height - padding.top - padding.bottom;
+                
+                // Find max value
+                const maxValue = Math.max(...data.map(d => d[field]));
+                
+                // Generate SVG
+                let svg = `
+                    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+                        <g transform="translate(${padding.left},${padding.top})">
+                `;
+                
+                // Add bars
+                const barWidth = chartWidth / data.length - 4;
+                data.forEach((d, i) => {
+                    const barHeight = (d[field] / maxValue) * chartHeight;
+                    const x = i * (barWidth + 4);
+                    const y = chartHeight - barHeight;
+                    
+                    svg += `
+                        <rect
+                            x="${x}"
+                            y="${y}"
+                            width="${barWidth}"
+                            height="${barHeight}"
+                            fill="#0077b6"
+                            data-district="${d.district}"
+                            data-value="${d[field]}"
+                        />
+                    `;
+                });
+                
+                // Add x-axis
+                svg += `
+                    <line
+                        x1="0"
+                        y1="${chartHeight}"
+                        x2="${chartWidth}"
+                        y2="${chartHeight}"
+                        stroke="#333"
+                        stroke-width="1"
+                    />
+                `;
+                
+                // Close SVG
+                svg += `
+                        </g>
+                    </svg>
+                `;
+                
+                return svg;
+            }
+            
+            // Helper function for generating pie chart SVG
+            function generatePieChartSVG(data, field, width, height) {
+                const radius = Math.min(width, height) / 2 - 20;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                
+                // Calculate total
+                const total = data.reduce((sum, d) => sum + d[field], 0);
+                
+                // Generate SVG
+                let svg = `
+                    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+                        <g transform="translate(${centerX},${centerY})">
+                `;
+                
+                // Generate color gradient
+                const colors = generateColorGradient('#0077b6', '#53a1d9', data.length);
+                
+                // Add pie slices
+                let startAngle = 0;
+                data.forEach((d, i) => {
+                    const percentage = total > 0 ? d[field] / total : 0;
+                    const endAngle = startAngle + percentage * 2 * Math.PI;
+                    
+                    // Calculate arc points
+                    const x1 = radius * Math.cos(startAngle);
+                    const y1 = radius * Math.sin(startAngle);
+                    const x2 = radius * Math.cos(endAngle);
+                    const y2 = radius * Math.sin(endAngle);
+                    
+                    // Large arc flag (0 for arcs less than 180 degrees, 1 for arcs greater than 180 degrees)
+                    const largeArcFlag = percentage > 0.5 ? 1 : 0;
+                    
+                    svg += `
+                        <path
+                            d="M 0 0 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z"
+                            fill="${colors[i]}"
+                            data-district="${d.district}"
+                            data-value="${d[field]}"
+                        />
+                    `;
+                    
+                    startAngle = endAngle;
+                });
+                
+                // Close SVG
+                svg += `
+                        </g>
+                    </svg>
+                `;
+                
+                return svg;
+            }
+            
+            // Helper function for generating line chart SVG (simulate historical data)
+            function generateLineChartSVG(data, field, width, height) {
+                const padding = { top: 20, right: 20, bottom: 40, left: 40 };
+                const chartWidth = width - padding.left - padding.right;
+                const chartHeight = height - padding.top - padding.bottom;
+                
+                // Simulate 5 time periods
+                const periods = 5;
+                
+                // Generate points for each district
+                const lines = data.map(d => {
+                    const points = [];
+                    let currentValue = d[field];
+                    
+                    // Generate random historical points (for demo purposes)
+                    for (let i = 0; i < periods; i++) {
+                        const x = i * (chartWidth / (periods - 1));
+                        const randomVariation = 1 + (Math.random() * 0.4 - 0.2); // +/- 20%
+                        
+                        // For the most recent point (last point), use the actual value
+                        let y;
+                        if (i === periods - 1) {
+                            y = chartHeight - (d[field] / Math.max(...data.map(d => d[field])) * chartHeight);
+                        } else {
+                            const historicalValue = currentValue * randomVariation;
+                            y = chartHeight - (historicalValue / Math.max(...data.map(d => d[field])) * chartHeight);
+                            currentValue = historicalValue; // For next period
+                        }
+                        
+                        points.push({ x, y });
+                    }
+                    
+                    return { district: d.district, points, value: d[field] };
+                });
+                
+                // Generate SVG
+                let svg = `
+                    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+                        <g transform="translate(${padding.left},${padding.top})">
+                `;
+                
+                // Add grid lines
+                for (let i = 0; i <= 4; i++) {
+                    const y = chartHeight * (i / 4);
+                    svg += `
+                        <line
+                            x1="0"
+                            y1="${y}"
+                            x2="${chartWidth}"
+                            y2="${y}"
+                            stroke="#ddd"
+                            stroke-width="1"
+                            stroke-dasharray="3,3"
+                        />
+                    `;
+                }
+                
+                // Generate color gradient
+                const colors = generateColorGradient('#0077b6', '#53a1d9', lines.length);
+                
+                // Add lines
+                lines.forEach((line, i) => {
+                    // Create path
+                    let path = `M ${line.points[0].x} ${line.points[0].y}`;
+                    
+                    for (let j = 1; j < line.points.length; j++) {
+                        path += ` L ${line.points[j].x} ${line.points[j].y}`;
+                    }
+                    
+                    svg += `
+                        <path
+                            d="${path}"
+                            fill="none"
+                            stroke="${colors[i]}"
+                            stroke-width="2"
+                            data-district="${line.district}"
+                            data-value="${line.value}"
+                        />
+                    `;
+                    
+                    // Add end point
+                    const lastPoint = line.points[line.points.length - 1];
+                    svg += `
+                        <circle
+                            cx="${lastPoint.x}"
+                            cy="${lastPoint.y}"
+                            r="4"
+                            fill="${colors[i]}"
+                            data-district="${line.district}"
+                            data-value="${line.value}"
+                        />
+                    `;
+                });
+                
+                // Add x-axis
+                svg += `
+                    <line
+                        x1="0"
+                        y1="${chartHeight}"
+                        x2="${chartWidth}"
+                        y2="${chartHeight}"
+                        stroke="#333"
+                        stroke-width="1"
+                    />
+                `;
+                
+                // Close SVG
+                svg += `
+                        </g>
+                    </svg>
+                `;
+                
+                return svg;
+            }
+            
+            // Helper function to generate color gradient
+            function generateColorGradient(startColor, endColor, steps) {
+                // Parse hex colors to RGB
+                const parseColor = (hexColor) => {
+                    const r = parseInt(hexColor.slice(1, 3), 16);
+                    const g = parseInt(hexColor.slice(3, 5), 16);
+                    const b = parseInt(hexColor.slice(5, 7), 16);
+                    return { r, g, b };
+                };
+                
+                // Convert RGB to hex
+                const toHex = (r, g, b) => {
+                    return `#${[r, g, b].map(c => {
+                        const hex = Math.round(c).toString(16);
+                        return hex.length === 1 ? '0' + hex : hex;
+                    }).join('')}`;
+                };
+                
+                const start = parseColor(startColor);
+                const end = parseColor(endColor);
+                
+                return Array.from({ length: steps }, (_, i) => {
+                    const factor = i / (steps - 1);
+                    const r = start.r + factor * (end.r - start.r);
+                    const g = start.g + factor * (end.g - start.g);
+                    const b = start.b + factor * (end.b - start.b);
+                    return toHex(r, g, b);
+                });
+            }
+            
             document.addEventListener('DOMContentLoaded', function() {
                 checkAndShowApiKeyNotice();
             });
@@ -3663,6 +4141,9 @@
                 
                 // Initialize drag-and-drop functionality
                 initDragDrop();
+                
+                // Initialize filter panel toggles and actions
+                initDashboardFilters();
                 
                 // Add event listeners for widget actions
                 initWidgetActions();
@@ -4221,6 +4702,71 @@
                 } catch (err) {
                     console.error("Error loading dashboard layout", err);
                     return false;
+                }
+            }
+            
+            function initDashboardFilters() {
+                // Get filter elements
+                const toggleBtn = document.getElementById('toggleFilterPanelBtn');
+                const filterContent = document.querySelector('.filter-content');
+                const districtFilter = document.getElementById('globalDistrictFilter');
+                const minValueFilter = document.getElementById('minValueFilter');
+                const minRateFilter = document.getElementById('minRateFilter');
+                const applyBtn = document.getElementById('applyFiltersBtn');
+                const clearBtn = document.getElementById('clearFiltersBtn');
+                
+                // Toggle filter panel visibility
+                if (toggleBtn && filterContent) {
+                    toggleBtn.addEventListener('click', () => {
+                        if (filterContent.style.display === 'none') {
+                            filterContent.style.display = 'grid';
+                            toggleBtn.textContent = 'Hide Filters';
+                        } else {
+                            filterContent.style.display = 'none';
+                            toggleBtn.textContent = 'Show Filters';
+                        }
+                    });
+                }
+                
+                // Populate district filter options
+                if (districtFilter && window.piltData) {
+                    // Clear existing options
+                    districtFilter.innerHTML = '';
+                    
+                    // Get unique districts
+                    const districts = [...new Set(window.piltData.map(item => item.district))];
+                    
+                    // Add options
+                    districts.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district;
+                        option.textContent = district;
+                        districtFilter.appendChild(option);
+                    });
+                }
+                
+                // Apply filters button click
+                if (applyBtn) {
+                    applyBtn.addEventListener('click', () => {
+                        // Get filter values
+                        const selectedDistricts = Array.from(districtFilter.selectedOptions).map(option => option.value);
+                        const minValue = minValueFilter.value ? parseFloat(minValueFilter.value) : null;
+                        const minRate = minRateFilter.value ? parseFloat(minRateFilter.value) : null;
+                        
+                        // Apply global filter
+                        window.applyGlobalFilter({
+                            district: selectedDistricts,
+                            minValue: minValue,
+                            minRate: minRate
+                        });
+                    });
+                }
+                
+                // Clear filters button click
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', () => {
+                        window.clearAllFilters();
+                    });
                 }
             }
             
