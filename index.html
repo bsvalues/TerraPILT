@@ -281,6 +281,115 @@
             line-height: 1.4;
             color: #333;
         }
+        
+        /* Table enhancements for Excel-like experience */
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        
+        .search-filter {
+            flex: 1;
+            margin-right: 15px;
+        }
+        
+        .table-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .small-button {
+            padding: 5px 10px;
+            font-size: 0.9rem;
+        }
+        
+        .secondary {
+            background-color: #6c757d;
+        }
+        
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+        }
+        
+        .sortable-table th.sortable {
+            cursor: pointer;
+            position: relative;
+            padding-right: 18px;
+        }
+        
+        .sort-icon {
+            font-size: 0.8em;
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+        
+        th.sort-asc .sort-icon {
+            content: "↑";
+            color: #333;
+        }
+        
+        th.sort-desc .sort-icon {
+            content: "↓";
+            color: #333;
+        }
+        
+        .editable-table td {
+            position: relative;
+        }
+        
+        .editable-table td.editing {
+            padding: 0;
+        }
+        
+        .editable-table td.editing input {
+            width: 100%;
+            height: 100%;
+            border: 2px solid #0077b6;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        
+        .editable-table td.editable {
+            cursor: pointer;
+        }
+        
+        .editable-table td.editable:hover {
+            background-color: #f0f7ff;
+        }
+        
+        .editable-cell-active {
+            background-color: #e3f2fd;
+        }
+        
+        /* Responsive design */
+        @media screen and (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .table-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .search-filter {
+                width: 100%;
+                margin-right: 0;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
     </style>
 </head>
 <body>
@@ -357,24 +466,35 @@
                 <div class="actions">
                     <button id="exportBtn">Export to PDF</button>
                 </div>
-                <table id="piltTable">
-                    <thead>
-                        <tr>
-                            <th>District</th>
-                            <th>Assessed Value</th>
-                            <th>Levy Rate</th>
-                            <th>Base PILT</th>
-                            <th>Deduction</th>
-                            <th>PILT Due</th>
-                        </tr>
-                    </thead>
-                    <tbody id="piltTableBody">
-                        <!-- This will be filled by JavaScript -->
-                    </tbody>
-                    <tfoot id="piltTableFoot">
-                        <!-- This will be filled by JavaScript -->
-                    </tfoot>
-                </table>
+                <div class="table-controls">
+                    <div class="search-filter">
+                        <input type="text" id="tableSearch" placeholder="Search districts..." class="form-control">
+                    </div>
+                    <div class="table-actions">
+                        <button id="saveTableChanges" class="small-button">Save Changes</button>
+                        <button id="discardTableChanges" class="small-button secondary">Discard Changes</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="piltTable" class="sortable-table editable-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="string" class="sortable">District <span class="sort-icon">↕</span></th>
+                                <th data-sort="number" class="sortable">Assessed Value <span class="sort-icon">↕</span></th>
+                                <th data-sort="number" class="sortable">Levy Rate <span class="sort-icon">↕</span></th>
+                                <th data-sort="number" class="sortable">Base PILT <span class="sort-icon">↕</span></th>
+                                <th data-sort="number" class="sortable">Deduction <span class="sort-icon">↕</span></th>
+                                <th data-sort="number" class="sortable">PILT Due <span class="sort-icon">↕</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="piltTableBody">
+                            <!-- This will be filled by JavaScript -->
+                        </tbody>
+                        <tfoot id="piltTableFoot">
+                            <!-- This will be filled by JavaScript -->
+                        </tfoot>
+                    </table>
+                </div>
 
                 <div class="grid">
                     <div class="metric">
@@ -581,23 +701,34 @@
             });
             
             // Functions to render tables and charts
+            // Variables for table editing
+            let originalPiltData = null;
+            let hasUnsavedChanges = false;
+            
             function renderPiltTable() {
                 const tableBody = document.getElementById('piltTableBody');
                 const tableFoot = document.getElementById('piltTableFoot');
+                
+                // Make a deep copy of the current data for edit tracking
+                if (!originalPiltData) {
+                    originalPiltData = JSON.parse(JSON.stringify(piltData));
+                }
                 
                 // Clear existing rows
                 tableBody.innerHTML = '';
                 
                 // Add data rows
-                piltData.forEach(district => {
+                piltData.forEach((district, index) => {
                     const row = document.createElement('tr');
+                    row.dataset.index = index;  // Store the index for editing
                     
+                    // Create cell content with appropriate classes for editing
                     row.innerHTML = `
                         <td>${district.district}</td>
-                        <td>${formatCurrency(district.assessedValue)}</td>
-                        <td>${formatRate(district.levyRate)}</td>
+                        <td data-field="assessedValue" data-original="${district.assessedValue}" class="editable">${formatCurrency(district.assessedValue)}</td>
+                        <td data-field="levyRate" data-original="${district.levyRate}" class="editable">${formatRate(district.levyRate)}</td>
                         <td>${formatCurrency(district.basePILT)}</td>
-                        <td>${formatCurrency(district.deduction)}</td>
+                        <td data-field="deduction" data-original="${district.deduction}" class="editable">${formatCurrency(district.deduction)}</td>
                         <td>${formatCurrency(district.piltDue)}</td>
                     `;
                     
@@ -619,6 +750,164 @@
                 // Update metrics
                 document.getElementById('totalPilt').textContent = formatCurrency(totals.piltDue);
                 document.getElementById('totalAssessed').textContent = formatCurrency(totals.assessedValue);
+                
+                // Add cell click handlers for editing
+                setupTableEditing();
+                
+                // Update the save/discard buttons visibility
+                updateEditButtons();
+            }
+            
+            // Setup table cell editing
+            function setupTableEditing() {
+                const editableCells = document.querySelectorAll('.editable-table td.editable');
+                
+                editableCells.forEach(cell => {
+                    // Remove any existing listeners
+                    cell.removeEventListener('click', handleCellClick);
+                    
+                    // Add new click listener
+                    cell.addEventListener('click', handleCellClick);
+                });
+            }
+            
+            // Handle cell click for editing
+            function handleCellClick(e) {
+                const cell = e.currentTarget;
+                const row = cell.parentElement;
+                const index = parseInt(row.dataset.index);
+                const field = cell.dataset.field;
+                const originalValue = cell.dataset.original;
+                
+                // Create input field
+                const input = document.createElement('input');
+                input.type = 'text';
+                
+                // Set input value based on field type
+                if (field === 'levyRate') {
+                    input.value = piltData[index][field];
+                    input.step = '0.0001';
+                } else {
+                    // Remove currency formatting for numeric values
+                    input.value = piltData[index][field];
+                }
+                
+                // Add input field to cell
+                cell.textContent = '';
+                cell.classList.add('editing');
+                cell.appendChild(input);
+                input.focus();
+                
+                // Select all text in input
+                input.select();
+                
+                // Handle input blur (complete edit)
+                input.addEventListener('blur', () => {
+                    completeEdit(cell, input, index, field, originalValue);
+                });
+                
+                // Handle Enter key
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        input.blur();
+                    }
+                });
+                
+                // Handle Escape key to cancel
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        cell.textContent = field === 'levyRate' 
+                            ? formatRate(originalValue) 
+                            : formatCurrency(originalValue);
+                        cell.classList.remove('editing');
+                    }
+                });
+            }
+            
+            // Complete the cell edit
+            function completeEdit(cell, input, index, field, originalValue) {
+                let newValue;
+                
+                // Parse input value
+                try {
+                    if (field === 'levyRate') {
+                        newValue = parseFloat(input.value);
+                    } else {
+                        // Parse currency or number
+                        newValue = parseFloat(input.value.replace(/[$,]/g, ''));
+                    }
+                    
+                    // Validate input
+                    if (isNaN(newValue)) {
+                        throw new Error('Invalid number');
+                    }
+                    
+                    // Update the data
+                    piltData[index][field] = newValue;
+                    cell.dataset.original = newValue;
+                    
+                    // Recalculate PILT
+                    recalculatePILT();
+                    
+                    // Format and display the new value
+                    cell.textContent = field === 'levyRate' 
+                        ? formatRate(newValue) 
+                        : formatCurrency(newValue);
+                    
+                    hasUnsavedChanges = true;
+                    updateEditButtons();
+                    
+                } catch (error) {
+                    // Revert to original on error
+                    cell.textContent = field === 'levyRate' 
+                        ? formatRate(originalValue) 
+                        : formatCurrency(originalValue);
+                }
+                
+                cell.classList.remove('editing');
+            }
+            
+            // Recalculate PILT after edits
+            function recalculatePILT() {
+                // Recalculate PILT for each district
+                piltData.forEach(district => {
+                    district.basePILT = district.assessedValue * district.levyRate;
+                    district.piltDue = Math.max(0, district.basePILT - district.deduction);
+                });
+                
+                // Update totals
+                const newTotals = window.aggregatePILT(piltData);
+                
+                // Update the table and metrics
+                document.getElementById('totalPilt').textContent = formatCurrency(newTotals.piltDue);
+                document.getElementById('totalAssessed').textContent = formatCurrency(newTotals.assessedValue);
+                
+                // Update totals row
+                const tableFoot = document.getElementById('piltTableFoot');
+                tableFoot.innerHTML = `
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td><strong>${formatCurrency(newTotals.assessedValue)}</strong></td>
+                        <td><strong>-</strong></td>
+                        <td><strong>${formatCurrency(newTotals.basePILT)}</strong></td>
+                        <td><strong>${formatCurrency(newTotals.deduction)}</strong></td>
+                        <td><strong>${formatCurrency(newTotals.piltDue)}</strong></td>
+                    </tr>
+                `;
+            }
+            
+            // Update save/discard buttons visibility
+            function updateEditButtons() {
+                const saveBtn = document.getElementById('saveTableChanges');
+                const discardBtn = document.getElementById('discardTableChanges');
+                
+                if (hasUnsavedChanges) {
+                    saveBtn.style.display = 'block';
+                    discardBtn.style.display = 'block';
+                } else {
+                    saveBtn.style.display = 'none';
+                    discardBtn.style.display = 'none';
+                }
             }
             
             function generateChart() {
@@ -682,9 +971,146 @@
                 chartContainer.innerHTML = svg;
             }
             
+            // Table searching/filtering functionality
+            function setupTableSearch() {
+                const searchInput = document.getElementById('tableSearch');
+                
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const rows = document.querySelectorAll('#piltTableBody tr');
+                    
+                    rows.forEach(row => {
+                        const districtName = row.cells[0].textContent.toLowerCase();
+                        
+                        if (districtName.includes(searchTerm)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            }
+            
+            // Table sorting functionality
+            function setupTableSorting() {
+                const sortableHeaders = document.querySelectorAll('.sortable-table th.sortable');
+                
+                sortableHeaders.forEach(header => {
+                    header.addEventListener('click', function() {
+                        const sortType = this.getAttribute('data-sort');
+                        const columnIndex = Array.from(this.parentElement.children).indexOf(this);
+                        
+                        // Toggle sort direction
+                        if (this.classList.contains('sort-asc')) {
+                            // Currently ascending, switch to descending
+                            sortTable(columnIndex, sortType, 'desc');
+                            
+                            // Update classes
+                            sortableHeaders.forEach(h => {
+                                h.classList.remove('sort-asc', 'sort-desc');
+                            });
+                            this.classList.add('sort-desc');
+                        } else {
+                            // Currently not sorted or descending, switch to ascending
+                            sortTable(columnIndex, sortType, 'asc');
+                            
+                            // Update classes
+                            sortableHeaders.forEach(h => {
+                                h.classList.remove('sort-asc', 'sort-desc');
+                            });
+                            this.classList.add('sort-asc');
+                        }
+                    });
+                });
+            }
+            
+            // Sort the table data
+            function sortTable(columnIndex, sortType, direction) {
+                const table = document.getElementById('piltTable');
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                
+                // Sort rows
+                rows.sort((a, b) => {
+                    let valueA = a.cells[columnIndex].textContent;
+                    let valueB = b.cells[columnIndex].textContent;
+                    
+                    // Parse values based on sort type
+                    if (sortType === 'number') {
+                        valueA = parseFloat(valueA.replace(/[$,]/g, ''));
+                        valueB = parseFloat(valueB.replace(/[$,]/g, ''));
+                    }
+                    
+                    // Compare values
+                    if (valueA < valueB) {
+                        return direction === 'asc' ? -1 : 1;
+                    } else if (valueA > valueB) {
+                        return direction === 'asc' ? 1 : -1;
+                    } else {
+                        return 0;
+                    }
+                });
+                
+                // Reappend rows in sorted order
+                rows.forEach(row => tbody.appendChild(row));
+            }
+            
+            // Save table changes
+            document.getElementById('saveTableChanges').addEventListener('click', function() {
+                // Update the original data with current values
+                originalPiltData = JSON.parse(JSON.stringify(piltData));
+                
+                // Hide save/discard buttons
+                hasUnsavedChanges = false;
+                updateEditButtons();
+                
+                // Update chart with new data
+                generateChart();
+                
+                // Show success message
+                const uploadStatus = document.getElementById('uploadStatus');
+                uploadStatus.style.display = 'block';
+                uploadStatus.textContent = 'Changes saved successfully!';
+                uploadStatus.style.borderColor = '#28a745';
+                
+                // Hide message after 3 seconds
+                setTimeout(() => {
+                    uploadStatus.style.display = 'none';
+                }, 3000);
+            });
+            
+            // Discard table changes
+            document.getElementById('discardTableChanges').addEventListener('click', function() {
+                // Revert to original data
+                piltData = JSON.parse(JSON.stringify(originalPiltData));
+                
+                // Re-render the table
+                renderPiltTable();
+                
+                // Hide save/discard buttons
+                hasUnsavedChanges = false;
+                updateEditButtons();
+                
+                // Show success message
+                const uploadStatus = document.getElementById('uploadStatus');
+                uploadStatus.style.display = 'block';
+                uploadStatus.textContent = 'Changes discarded.';
+                uploadStatus.style.borderColor = '#ffc107';
+                
+                // Hide message after 3 seconds
+                setTimeout(() => {
+                    uploadStatus.style.display = 'none';
+                }, 3000);
+            });
+            
+            // Hide save/discard buttons initially
+            updateEditButtons();
+            
             // Initial rendering
             renderPiltTable();
             generateChart();
+            setupTableSearch();
+            setupTableSorting();
             
             // Tab switching
             document.querySelectorAll('.tab').forEach(tab => {
