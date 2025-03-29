@@ -199,6 +199,88 @@
         .tab-content.active {
             display: block;
         }
+        
+        /* AI-related styles */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 119, 182, 0.2);
+            border-top-color: #0077b6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .primary-button {
+            background-color: #0077b6;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .primary-button:hover {
+            background-color: #005b8a;
+        }
+        
+        .secondary-button {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            color: #333;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .secondary-button:hover {
+            background-color: #e9ecef;
+        }
+        
+        .hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .user-message {
+            background-color: #e6f2ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: right;
+        }
+        
+        .ai-message {
+            background-color: #f0f7ff;
+            padding: 10px; 
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border-left: 3px solid #0077b6;
+        }
+        
+        .ai-tooltip {
+            position: absolute;
+            background-color: #fff;
+            border: 1px solid #0077b6;
+            border-radius: 6px;
+            padding: 10px;
+            max-width: 300px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -215,6 +297,8 @@
                 <li>View PILT calculations based on assessed values and levy rates</li>
                 <li>Conduct "what-if" analysis with adjustable parameters</li>
                 <li>View visualizations of PILT data</li>
+                <li>Get AI-powered insights and analysis of your PILT data</li>
+                <li>Chat with an AI assistant to answer questions about your data</li>
                 <li>Export reports in PDF format</li>
                 <li><a href="excel_interface.html" style="color: #0077b6; font-weight: bold;">Use Excel-like Interface</a> for advanced data manipulation</li>
             </ul>
@@ -263,6 +347,8 @@
         <div class="tabs">
             <div class="tab active" data-tab="current">Current PILT</div>
             <div class="tab" data-tab="whatif">What-If Analysis</div>
+            <div class="tab" data-tab="ai-insights">AI Insights</div>
+            <div class="tab" data-tab="settings">Settings</div>
         </div>
 
         <div id="current" class="tab-content active">
@@ -365,10 +451,82 @@
                 </table>
             </div>
         </div>
+        
+        <div id="ai-insights" class="tab-content">
+            <div class="card">
+                <h2>AI-Powered Data Insights</h2>
+                <p>Get intelligent insights and analysis of your PILT data.</p>
+                
+                <div id="api-key-notice" class="note" style="display: none;">
+                    <p><strong>Note:</strong> AI features require an OpenAI API key. Please configure your API key in the Settings tab.</p>
+                </div>
+                
+                <div class="actions" style="margin-bottom: 20px;">
+                    <button id="getInsightsBtn" class="primary-button">Generate Insights</button>
+                    <button id="getRecommendationsBtn" class="primary-button">Get What-If Recommendations</button>
+                </div>
+                
+                <div id="ai-insights-loading" style="display: none; text-align: center; margin: 30px 0;">
+                    <div class="loading-spinner" style="width: 30px; height: 30px; margin-bottom: 15px;"></div>
+                    <p>Analyzing your PILT data. This may take a moment...</p>
+                </div>
+                
+                <div id="ai-insights-content" style="display: none; background-color: #f9f9f9; padding: 20px; border-radius: 5px; border-left: 4px solid #0077b6;">
+                    <!-- Will be filled with AI-generated insights -->
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>AI Chat Assistant</h2>
+                <p>Ask questions about your PILT data and get expert answers.</p>
+                
+                <div id="chat-container" style="border: 1px solid #ddd; border-radius: 5px; height: 300px; margin-bottom: 15px; overflow-y: auto; padding: 15px;">
+                    <div id="chat-messages">
+                        <div class="ai-message" style="background-color: #f0f7ff; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                            <p style="margin: 0;">Hello! I'm your PILT data assistant. How can I help you analyze your PILT data today?</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex;">
+                    <input type="text" id="chat-input" placeholder="Ask a question about your PILT data..." style="flex: 1; margin-right: 10px;">
+                    <button id="send-chat" class="primary-button">Send</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="settings" class="tab-content">
+            <div class="card">
+                <h2>AI Assistant Settings</h2>
+                <p>Configure settings for AI-powered features.</p>
+                
+                <div class="form-group">
+                    <label for="openai-api-key">OpenAI API Key</label>
+                    <input type="password" id="openai-api-key" placeholder="Enter your OpenAI API key">
+                    <p class="hint">Your API key is stored securely in your browser's local storage and is never sent to our servers.</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="ai-model">AI Model</label>
+                    <select id="ai-model">
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Faster)</option>
+                        <option value="gpt-4">GPT-4 (More Advanced)</option>
+                    </select>
+                    <p class="hint">GPT-4 provides more advanced analysis but may be slower and more expensive.</p>
+                </div>
+                
+                <div class="actions">
+                    <button id="save-ai-settings" class="primary-button">Save Settings</button>
+                    <button id="clear-ai-settings" class="secondary-button">Clear Settings</button>
+                </div>
+                
+                <div id="ai-settings-status" class="note" style="display: none; margin-top: 15px;"></div>
+            </div>
+        </div>
 
         <footer>
             <p>Benton County PILT Dashboard | Property Assessment Division</p>
-            <p>Last Updated: March 20, 2025</p>
+            <p>Last Updated: March 29, 2025</p>
         </footer>
     </div>
 
@@ -376,6 +534,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="simple_pilt_calculator.js"></script>
+    <script src="ai_assistant.js"></script>
     <script>
         // Format currency values
         function formatCurrency(value) {
@@ -1117,6 +1276,208 @@
             
             // Initial load of available files
             loadAvailableFiles();
+
+            // AI Assistant Integration
+            // Check if API key exists
+            const checkAndShowApiKeyNotice = () => {
+                const apiKeyNotice = document.getElementById('api-key-notice');
+                if (!window.aiAssistant || !window.aiAssistant.apiKey) {
+                    apiKeyNotice.style.display = 'block';
+                    return false;
+                } else {
+                    apiKeyNotice.style.display = 'none';
+                    return true;
+                }
+            };
+            
+            // AI Settings UI
+            const openaiApiKeyInput = document.getElementById('openai-api-key');
+            const aiModelSelect = document.getElementById('ai-model');
+            const saveSettingsBtn = document.getElementById('save-ai-settings');
+            const clearSettingsBtn = document.getElementById('clear-ai-settings');
+            const settingsStatus = document.getElementById('ai-settings-status');
+            
+            // Load saved settings
+            if (localStorage.getItem('openai_api_key')) {
+                openaiApiKeyInput.value = localStorage.getItem('openai_api_key');
+            }
+            
+            if (localStorage.getItem('ai_model')) {
+                aiModelSelect.value = localStorage.getItem('ai_model');
+            }
+            
+            // Save settings
+            saveSettingsBtn.addEventListener('click', function() {
+                const apiKey = openaiApiKeyInput.value.trim();
+                const aiModel = aiModelSelect.value;
+                
+                if (!apiKey) {
+                    settingsStatus.style.display = 'block';
+                    settingsStatus.textContent = 'API key is required.';
+                    settingsStatus.style.borderColor = '#dc3545';
+                    return;
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('openai_api_key', apiKey);
+                localStorage.setItem('ai_model', aiModel);
+                
+                // Update AI assistant
+                window.aiAssistant.setApiKey(apiKey);
+                
+                // Show success message
+                settingsStatus.style.display = 'block';
+                settingsStatus.textContent = 'Settings saved successfully!';
+                settingsStatus.style.borderColor = '#28a745';
+                
+                // Update API key notice
+                checkAndShowApiKeyNotice();
+            });
+            
+            // Clear settings
+            clearSettingsBtn.addEventListener('click', function() {
+                // Clear inputs
+                openaiApiKeyInput.value = '';
+                aiModelSelect.value = 'gpt-3.5-turbo';
+                
+                // Clear localStorage
+                localStorage.removeItem('openai_api_key');
+                localStorage.removeItem('ai_model');
+                
+                // Clear AI assistant API key
+                window.aiAssistant.setApiKey(null);
+                window.aiAssistant.clearHistory();
+                
+                // Show success message
+                settingsStatus.style.display = 'block';
+                settingsStatus.textContent = 'Settings cleared successfully.';
+                settingsStatus.style.borderColor = '#28a745';
+                
+                // Update API key notice
+                checkAndShowApiKeyNotice();
+            });
+            
+            // AI Insights functions
+            const getInsightsBtn = document.getElementById('getInsightsBtn');
+            const getRecommendationsBtn = document.getElementById('getRecommendationsBtn');
+            const aiInsightsLoading = document.getElementById('ai-insights-loading');
+            const aiInsightsContent = document.getElementById('ai-insights-content');
+            
+            // Generate insights
+            getInsightsBtn.addEventListener('click', async function() {
+                if (!checkAndShowApiKeyNotice()) {
+                    return;
+                }
+                
+                try {
+                    // Show loading spinner
+                    aiInsightsLoading.style.display = 'block';
+                    aiInsightsContent.style.display = 'none';
+                    
+                    // Get insights from AI
+                    const insights = await window.aiAssistant.getDataInsights(piltData);
+                    
+                    // Display insights
+                    aiInsightsContent.innerHTML = insights.replace(/\n/g, '<br>');
+                    aiInsightsContent.style.display = 'block';
+                } catch (error) {
+                    aiInsightsContent.innerHTML = `<strong>Error:</strong> ${error.message}`;
+                    aiInsightsContent.style.display = 'block';
+                } finally {
+                    aiInsightsLoading.style.display = 'none';
+                }
+            });
+            
+            // Get recommendations
+            getRecommendationsBtn.addEventListener('click', async function() {
+                if (!checkAndShowApiKeyNotice()) {
+                    return;
+                }
+                
+                try {
+                    // Show loading spinner
+                    aiInsightsLoading.style.display = 'block';
+                    aiInsightsContent.style.display = 'none';
+                    
+                    // Get recommendations from AI
+                    const recommendations = await window.aiAssistant.getWhatIfRecommendations(piltData);
+                    
+                    // Display recommendations
+                    aiInsightsContent.innerHTML = recommendations.replace(/\n/g, '<br>');
+                    aiInsightsContent.style.display = 'block';
+                } catch (error) {
+                    aiInsightsContent.innerHTML = `<strong>Error:</strong> ${error.message}`;
+                    aiInsightsContent.style.display = 'block';
+                } finally {
+                    aiInsightsLoading.style.display = 'none';
+                }
+            });
+            
+            // Chat functionality
+            const chatInput = document.getElementById('chat-input');
+            const sendChatBtn = document.getElementById('send-chat');
+            const chatMessages = document.getElementById('chat-messages');
+            
+            // Send chat message
+            const sendChatMessage = async () => {
+                if (!checkAndShowApiKeyNotice()) {
+                    return;
+                }
+                
+                const userMessage = chatInput.value.trim();
+                if (!userMessage) return;
+                
+                // Clear input
+                chatInput.value = '';
+                
+                // Add user message to chat
+                const userMessageElement = document.createElement('div');
+                userMessageElement.className = 'user-message';
+                userMessageElement.innerHTML = `<p style="margin: 0;">${userMessage}</p>`;
+                chatMessages.appendChild(userMessageElement);
+                
+                // Add loading message
+                const loadingElement = document.createElement('div');
+                loadingElement.className = 'ai-message';
+                loadingElement.innerHTML = `
+                    <div class="loading-spinner" style="width: 16px; height: 16px;"></div>
+                    <p style="margin: 0;">Thinking...</p>
+                `;
+                chatMessages.appendChild(loadingElement);
+                
+                // Scroll to bottom
+                const chatContainer = document.getElementById('chat-container');
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                try {
+                    // Get response from AI
+                    const response = await window.aiAssistant.chat(userMessage, piltData);
+                    
+                    // Replace loading message with response
+                    loadingElement.innerHTML = `<p style="margin: 0;">${response.replace(/\n/g, '<br>')}</p>`;
+                } catch (error) {
+                    // Replace loading message with error
+                    loadingElement.innerHTML = `<p style="margin: 0; color: #dc3545;"><strong>Error:</strong> ${error.message}</p>`;
+                }
+                
+                // Scroll to bottom again
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            };
+            
+            // Send on button click
+            sendChatBtn.addEventListener('click', sendChatMessage);
+            
+            // Send on Enter key press
+            chatInput.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    sendChatMessage();
+                }
+            });
+            
+            // Check API key on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                checkAndShowApiKeyNotice();
+            });
         });
     </script>
 </body>
