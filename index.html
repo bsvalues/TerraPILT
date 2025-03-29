@@ -512,6 +512,66 @@
             overflow: hidden;
         }
         
+        /* Widget themes */
+        .widget.theme-light {
+            background-color: #fff;
+            color: #333;
+        }
+        
+        .widget.theme-dark {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+        }
+        
+        .widget.theme-dark .widget-header {
+            border-bottom-color: #34495e;
+        }
+        
+        .widget.theme-dark .widget-action {
+            color: #bdc3c7;
+        }
+        
+        .widget.theme-dark .widget-action:hover {
+            background-color: #34495e;
+            color: #fff;
+        }
+        
+        .widget.theme-blue {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+        }
+        
+        .widget.theme-blue .widget-header {
+            border-bottom-color: #bbdefb;
+        }
+        
+        .widget.theme-green {
+            background-color: #e8f5e9;
+            color: #1b5e20;
+        }
+        
+        .widget.theme-green .widget-header {
+            border-bottom-color: #c8e6c9;
+        }
+        
+        .widget.theme-accent {
+            background-color: #0077b6;
+            color: #fff;
+        }
+        
+        .widget.theme-accent .widget-header {
+            border-bottom-color: #006da7;
+        }
+        
+        .widget.theme-accent .widget-action {
+            color: #e1f5fe;
+        }
+        
+        .widget.theme-accent .widget-action:hover {
+            background-color: #006da7;
+            color: #fff;
+        }
+        
         .widget.large {
             grid-column: span 2;
         }
@@ -592,6 +652,81 @@
             transition: opacity 0.2s;
         }
         
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal-content {
+            position: relative;
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 0;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            width: 500px;
+            max-width: 90%;
+            animation: slideIn 0.3s;
+        }
+        
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #333;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .close-modal {
+            color: #aaa;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close-modal:hover {
+            color: #333;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
         .widget:hover .widget-customize-button {
             opacity: 1;
         }
@@ -669,6 +804,92 @@
 </head>
 <body>
     <div class="container">
+        <!-- Widget Configuration Modal -->
+        <div id="widgetConfigModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Widget Configuration</h2>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="widget-title-input">Widget Title</label>
+                        <input type="text" id="widget-title-input" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="widget-theme-select">Widget Theme</label>
+                        <select id="widget-theme-select" class="form-control">
+                            <option value="theme-light">Light (Default)</option>
+                            <option value="theme-dark">Dark</option>
+                            <option value="theme-blue">Blue</option>
+                            <option value="theme-green">Green</option>
+                            <option value="theme-accent">Accent</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group widget-data-filter" style="display: none;">
+                        <label for="widget-data-filter-select">Data Filter</label>
+                        <select id="widget-data-filter-select" class="form-control" multiple>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                        <p class="hint">Hold Ctrl/Cmd to select multiple districts</p>
+                    </div>
+                    
+                    <div class="form-group widget-refresh-interval" style="display: none;">
+                        <label for="widget-refresh-select">Auto Refresh</label>
+                        <select id="widget-refresh-select" class="form-control">
+                            <option value="0">No Auto Refresh</option>
+                            <option value="30">Every 30 seconds</option>
+                            <option value="60">Every minute</option>
+                            <option value="300">Every 5 minutes</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group widget-chart-options" style="display: none;">
+                        <label for="widget-chart-type">Chart Type</label>
+                        <select id="widget-chart-type" class="form-control">
+                            <option value="bar">Bar Chart</option>
+                            <option value="pie">Pie Chart</option>
+                            <option value="line">Line Chart</option>
+                            <option value="area">Area Chart</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group widget-data-options" style="display: none;">
+                        <label for="widget-data-field">Data Field</label>
+                        <select id="widget-data-field" class="form-control">
+                            <option value="piltDue">PILT Due</option>
+                            <option value="assessedValue">Assessed Value</option>
+                            <option value="levyRate">Levy Rate</option>
+                            <option value="deduction">Deduction</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group widget-limit-options" style="display: none;">
+                        <label for="widget-data-limit">Show Top</label>
+                        <select id="widget-data-limit" class="form-control">
+                            <option value="0">All Districts</option>
+                            <option value="3">Top 3</option>
+                            <option value="5">Top 5</option>
+                            <option value="10">Top 10</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="widget-show-title" checked>
+                            Show Widget Title
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="save-widget-config" class="primary-button">Save Changes</button>
+                    <button class="secondary-button close-modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+        
         <header>
             <h1>Benton County PILT Dashboard</h1>
         </header>
@@ -768,6 +989,7 @@
                                 <span class="widget-title">PILT Summary</span>
                             </div>
                             <div class="widget-actions">
+                                <button class="widget-action configure-widget" title="Configure"><i>⚙️</i></button>
                                 <button class="widget-action resize-widget" data-size="normal">Normal</button>
                                 <button class="widget-action resize-widget" data-size="large">Large</button>
                                 <button class="widget-action remove-widget">×</button>
@@ -798,6 +1020,7 @@
                                 <span class="widget-title">PILT Due by District</span>
                             </div>
                             <div class="widget-actions">
+                                <button class="widget-action configure-widget" title="Configure"><i>⚙️</i></button>
                                 <button class="widget-action resize-widget" data-size="normal">Normal</button>
                                 <button class="widget-action resize-widget" data-size="large">Large</button>
                                 <button class="widget-action resize-widget" data-size="extra-large">X-Large</button>
@@ -816,6 +1039,7 @@
                                 <span class="widget-title">Distribution</span>
                             </div>
                             <div class="widget-actions">
+                                <button class="widget-action configure-widget" title="Configure"><i>⚙️</i></button>
                                 <button class="widget-action resize-widget" data-size="normal">Normal</button>
                                 <button class="widget-action resize-widget" data-size="large">Large</button>
                                 <button class="widget-action remove-widget">×</button>
@@ -833,6 +1057,7 @@
                                 <span class="widget-title">Top Districts</span>
                             </div>
                             <div class="widget-actions">
+                                <button class="widget-action configure-widget" title="Configure"><i>⚙️</i></button>
                                 <button class="widget-action resize-widget" data-size="normal">Normal</button>
                                 <button class="widget-action resize-widget" data-size="large">Large</button>
                                 <button class="widget-action remove-widget">×</button>
@@ -4019,6 +4244,347 @@
                         }
                     });
                 }
+                
+                // Initialize widget configuration
+                initWidgetConfiguration();
+            }
+            
+            // Widget configuration functionality
+            let currentWidgetBeingConfigured = null;
+            const widgetConfigModal = document.getElementById('widgetConfigModal');
+            const widgetTitleInput = document.getElementById('widget-title-input');
+            const widgetThemeSelect = document.getElementById('widget-theme-select');
+            const widgetShowTitle = document.getElementById('widget-show-title');
+            
+            function initWidgetConfiguration() {
+                // Initialize widget configuration buttons
+                const configButtons = document.querySelectorAll('.configure-widget');
+                configButtons.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const widget = e.target.closest('.widget');
+                        if (widget) {
+                            openWidgetConfigModal(widget);
+                        }
+                    });
+                });
+                
+                // Initialize close modal buttons
+                const closeButtons = document.querySelectorAll('.close-modal');
+                closeButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        widgetConfigModal.style.display = 'none';
+                    });
+                });
+                
+                // Save widget configuration button
+                const saveConfigBtn = document.getElementById('save-widget-config');
+                if (saveConfigBtn) {
+                    saveConfigBtn.addEventListener('click', saveWidgetConfiguration);
+                }
+                
+                // Close modal when clicking outside
+                window.addEventListener('click', (e) => {
+                    if (e.target === widgetConfigModal) {
+                        widgetConfigModal.style.display = 'none';
+                    }
+                });
+            }
+            
+            function openWidgetConfigModal(widget) {
+                currentWidgetBeingConfigured = widget;
+                const widgetId = widget.getAttribute('data-widget-id');
+                const widgetTitle = widget.querySelector('.widget-title');
+                
+                // Reset form
+                document.querySelector('.widget-data-filter').style.display = 'none';
+                document.querySelector('.widget-refresh-interval').style.display = 'none';
+                document.querySelector('.widget-chart-options').style.display = 'none';
+                document.querySelector('.widget-data-options').style.display = 'none';
+                document.querySelector('.widget-limit-options').style.display = 'none';
+                
+                // Populate form with current widget settings
+                widgetTitleInput.value = widgetTitle ? widgetTitle.textContent : '';
+                
+                // Get current theme
+                let currentTheme = 'theme-light';
+                ['theme-light', 'theme-dark', 'theme-blue', 'theme-green', 'theme-accent'].forEach(theme => {
+                    if (widget.classList.contains(theme)) {
+                        currentTheme = theme;
+                    }
+                });
+                widgetThemeSelect.value = currentTheme;
+                
+                // Show relevant options based on widget type
+                if (widgetId.includes('chart')) {
+                    document.querySelector('.widget-chart-options').style.display = 'block';
+                    document.querySelector('.widget-data-options').style.display = 'block';
+                }
+                
+                if (widgetId === 'table') {
+                    document.querySelector('.widget-limit-options').style.display = 'block';
+                    document.querySelector('.widget-data-options').style.display = 'block';
+                }
+                
+                // Show data filter options and populate districts for all widget types
+                document.querySelector('.widget-data-filter').style.display = 'block';
+                const filterSelect = document.getElementById('widget-data-filter-select');
+                filterSelect.innerHTML = '';
+                
+                // Populate districts if data is available
+                if (piltData && piltData.length > 0) {
+                    piltData.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.district;
+                        option.textContent = district.district;
+                        filterSelect.appendChild(option);
+                    });
+                }
+                
+                // Show refresh interval options for all widget types
+                document.querySelector('.widget-refresh-interval').style.display = 'block';
+                
+                // Show the modal
+                widgetConfigModal.style.display = 'block';
+            }
+            
+            function saveWidgetConfiguration() {
+                if (!currentWidgetBeingConfigured) return;
+                
+                // Update widget title
+                const widgetTitle = currentWidgetBeingConfigured.querySelector('.widget-title');
+                if (widgetTitle) {
+                    widgetTitle.textContent = widgetTitleInput.value;
+                }
+                
+                // Update widget theme - first remove all existing themes
+                ['theme-light', 'theme-dark', 'theme-blue', 'theme-green', 'theme-accent'].forEach(theme => {
+                    currentWidgetBeingConfigured.classList.remove(theme);
+                });
+                
+                // Then add the selected theme
+                currentWidgetBeingConfigured.classList.add(widgetThemeSelect.value);
+                
+                // Toggle widget title visibility
+                if (!widgetShowTitle.checked) {
+                    widgetTitle.style.display = 'none';
+                } else {
+                    widgetTitle.style.display = 'inline';
+                }
+                
+                // Store widget configuration in dataset for persistence
+                currentWidgetBeingConfigured.dataset.config = JSON.stringify({
+                    title: widgetTitleInput.value,
+                    theme: widgetThemeSelect.value,
+                    showTitle: widgetShowTitle.checked,
+                    refresh: document.getElementById('widget-refresh-select').value,
+                    dataField: document.getElementById('widget-data-field').value,
+                    chartType: document.getElementById('widget-chart-type').value,
+                    dataLimit: document.getElementById('widget-data-limit').value
+                });
+                
+                // Update the widget content based on new configuration
+                updateWidgetContent(currentWidgetBeingConfigured);
+                
+                // Save dashboard layout to persist changes
+                saveDashboardLayout();
+                
+                // Close the modal
+                widgetConfigModal.style.display = 'none';
+            }
+            
+            function updateWidgetContent(widget) {
+                const widgetId = widget.getAttribute('data-widget-id');
+                
+                // Apply refresh setting (implement interval functionality)
+                const config = widget.dataset.config ? JSON.parse(widget.dataset.config) : {};
+                
+                if (config.refresh && parseInt(config.refresh) > 0) {
+                    // Clear any existing refresh interval
+                    if (widget.dataset.refreshInterval) {
+                        clearInterval(parseInt(widget.dataset.refreshInterval));
+                    }
+                    
+                    // Set new refresh interval
+                    const interval = setInterval(() => {
+                        refreshWidgetData(widget);
+                    }, parseInt(config.refresh) * 1000);
+                    
+                    widget.dataset.refreshInterval = interval;
+                }
+                
+                // Update widget content based on type
+                if (widgetId.includes('chart')) {
+                    regenerateWidgetChart(widget);
+                } else if (widgetId === 'table') {
+                    regenerateWidgetTable(widget);
+                } else if (widgetId === 'summary') {
+                    updateWidgetSummary(widget);
+                }
+            }
+            
+            function refreshWidgetData(widget) {
+                // This is where we would fetch fresh data if needed
+                // For now, just update the widget with existing data
+                updateWidgetContent(widget);
+                
+                // Show a brief "refreshed" indicator
+                const refreshIndicator = document.createElement('div');
+                refreshIndicator.className = 'refresh-indicator';
+                refreshIndicator.textContent = 'Updated';
+                refreshIndicator.style.position = 'absolute';
+                refreshIndicator.style.top = '5px';
+                refreshIndicator.style.right = '5px';
+                refreshIndicator.style.background = 'rgba(0,119,182,0.7)';
+                refreshIndicator.style.color = 'white';
+                refreshIndicator.style.padding = '3px 8px';
+                refreshIndicator.style.borderRadius = '3px';
+                refreshIndicator.style.fontSize = '12px';
+                refreshIndicator.style.opacity = '0';
+                refreshIndicator.style.transition = 'opacity 0.3s';
+                
+                widget.appendChild(refreshIndicator);
+                
+                // Fade in
+                setTimeout(() => {
+                    refreshIndicator.style.opacity = '1';
+                }, 10);
+                
+                // Fade out and remove
+                setTimeout(() => {
+                    refreshIndicator.style.opacity = '0';
+                    setTimeout(() => {
+                        if (refreshIndicator.parentNode) {
+                            refreshIndicator.parentNode.removeChild(refreshIndicator);
+                        }
+                    }, 300);
+                }, 2000);
+            }
+            
+            function regenerateWidgetChart(widget) {
+                const chartContainer = widget.querySelector('.widget-chart');
+                if (!chartContainer) return;
+                
+                // Clear existing chart
+                chartContainer.innerHTML = '';
+                
+                // Get configuration
+                const config = widget.dataset.config ? JSON.parse(widget.dataset.config) : {};
+                const dataField = config.dataField || 'piltDue';
+                const chartType = config.chartType || 'bar';
+                
+                // Get filtered data if applicable
+                let widgetData = piltData;
+                const filterSelect = document.getElementById('widget-data-filter-select');
+                const selectedDistricts = Array.from(filterSelect.selectedOptions).map(option => option.value);
+                
+                if (selectedDistricts.length > 0) {
+                    widgetData = piltData.filter(district => selectedDistricts.includes(district.district));
+                }
+                
+                // Generate appropriate chart based on type
+                if (chartType === 'pie') {
+                    generatePieChart(chartContainer, widgetData, dataField);
+                } else if (chartType === 'bar') {
+                    generateBarChart(chartContainer, widgetData, dataField);
+                } else if (chartType === 'line') {
+                    generateLineChart(chartContainer, widgetData, dataField);
+                }
+            }
+            
+            function regenerateWidgetTable(widget) {
+                const tableContainer = widget.querySelector('.widget-table-container');
+                if (!tableContainer) return;
+                
+                const tableBody = tableContainer.querySelector('tbody');
+                if (!tableBody) return;
+                
+                // Clear existing table rows
+                tableBody.innerHTML = '';
+                
+                // Get configuration
+                const config = widget.dataset.config ? JSON.parse(widget.dataset.config) : {};
+                const dataField = config.dataField || 'piltDue';
+                const dataLimit = config.dataLimit ? parseInt(config.dataLimit) : 0;
+                
+                // Get filtered data if applicable
+                let widgetData = [...piltData]; // Create a copy
+                const filterSelect = document.getElementById('widget-data-filter-select');
+                const selectedDistricts = Array.from(filterSelect.selectedOptions).map(option => option.value);
+                
+                if (selectedDistricts.length > 0) {
+                    widgetData = widgetData.filter(district => selectedDistricts.includes(district.district));
+                }
+                
+                // Sort data by the selected field
+                widgetData.sort((a, b) => b[dataField] - a[dataField]);
+                
+                // Apply limit if set
+                if (dataLimit > 0) {
+                    widgetData = widgetData.slice(0, dataLimit);
+                }
+                
+                // Calculate total for percentage
+                const total = widgetData.reduce((sum, district) => sum + district[dataField], 0);
+                
+                // Populate table
+                widgetData.forEach(district => {
+                    const row = document.createElement('tr');
+                    
+                    // District name
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = district.district;
+                    row.appendChild(nameCell);
+                    
+                    // Value
+                    const valueCell = document.createElement('td');
+                    if (dataField === 'levyRate') {
+                        valueCell.textContent = formatRate(district[dataField]);
+                    } else {
+                        valueCell.textContent = formatCurrency(district[dataField]);
+                    }
+                    valueCell.className = 'align-right';
+                    row.appendChild(valueCell);
+                    
+                    // Percentage
+                    const percentCell = document.createElement('td');
+                    const percent = (district[dataField] / total) * 100;
+                    percentCell.textContent = `${percent.toFixed(1)}%`;
+                    percentCell.className = 'align-right';
+                    row.appendChild(percentCell);
+                    
+                    tableBody.appendChild(row);
+                });
+            }
+            
+            function updateWidgetSummary(widget) {
+                const metrics = widget.querySelectorAll('.metric-value');
+                if (!metrics.length) return;
+                
+                // Get filtered data if applicable
+                let widgetData = piltData;
+                const filterSelect = document.getElementById('widget-data-filter-select');
+                const selectedDistricts = Array.from(filterSelect.selectedOptions).map(option => option.value);
+                
+                if (selectedDistricts.length > 0) {
+                    widgetData = piltData.filter(district => selectedDistricts.includes(district.district));
+                }
+                
+                // Calculate totals based on filtered data
+                const filteredTotals = {
+                    piltDue: widgetData.reduce((sum, district) => sum + district.piltDue, 0),
+                    assessedValue: widgetData.reduce((sum, district) => sum + district.assessedValue, 0)
+                };
+                
+                // Calculate average levy rate for filtered data
+                const avgLevy = widgetData.length > 0 
+                    ? widgetData.reduce((sum, district) => sum + district.levyRate, 0) / widgetData.length
+                    : 0;
+                
+                // Update values
+                metrics[0].textContent = formatCurrency(filteredTotals.piltDue);
+                metrics[1].textContent = formatCurrency(filteredTotals.assessedValue);
+                metrics[2].textContent = formatRate(avgLevy);
             }
         });
     </script>
