@@ -248,11 +248,56 @@
             margin-top: 20px;
             text-align: right;
         }
-        #exportBtn {
-            background-color: #28a745;
+        /* Export button styles */
+        .export-dropdown {
+            position: relative;
+            display: inline-block;
         }
-        #exportBtn:hover {
+        
+        .export-dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #f9f9f9;
+            min-width: 180px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .export-dropdown-content a {
+            color: #333;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 14px;
+        }
+        
+        .export-dropdown-content a:hover {
+            background-color: #f1f1f1;
+            color: #0077b6;
+        }
+        
+        .export-dropdown:hover .export-dropdown-content {
+            display: block;
+        }
+        
+        .dropdown-toggle {
+            background-color: #28a745;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 120px;
+        }
+        
+        .dropdown-toggle:hover {
             background-color: #218838;
+        }
+        
+        .dropdown-arrow {
+            font-size: 10px;
+            margin-left: 8px;
         }
         .tabs {
             display: flex;
@@ -544,7 +589,15 @@
             <div class="card">
                 <h2>PILT Summary by District</h2>
                 <div class="actions">
-                    <button id="exportBtn">Export to PDF</button>
+                    <div class="export-dropdown">
+                        <button id="exportBtn" class="dropdown-toggle">Export <span class="dropdown-arrow">▼</span></button>
+                        <div class="export-dropdown-content">
+                            <a href="#" id="exportPDF">PDF Document</a>
+                            <a href="#" id="exportExcel">Excel Spreadsheet</a>
+                            <a href="#" id="exportCSV">CSV File</a>
+                            <a href="#" id="exportPrint">Print View</a>
+                        </div>
+                    </div>
                 </div>
                 <div class="table-controls">
                     <div class="search-filter">
@@ -2101,8 +2154,12 @@
                 reader.readAsArrayBuffer(file);
             });
             
-            // Export to PDF functionality
-            document.getElementById('exportBtn').addEventListener('click', function() {
+            // Export options functionality
+            
+            // Export to PDF
+            document.getElementById('exportPDF').addEventListener('click', function(e) {
+                e.preventDefault();
+                
                 // Check if jsPDF is available
                 if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
                     alert('PDF export library not loaded. Please check your internet connection.');
@@ -2145,8 +2202,443 @@
                     footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
                 });
                 
-                // Save the PDF
-                doc.save('PILT_Dashboard_Report.pdf');
+                // Add the current chart
+                try {
+                    const chartContainer = document.getElementById('chartContainer');
+                    const svg = chartContainer.querySelector('svg');
+                    
+                    if (svg) {
+                        // Convert SVG to data URL
+                        const svgData = new XMLSerializer().serializeToString(svg);
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Set canvas dimensions to match SVG viewBox or dimensions
+                        const svgWidth = svg.getAttribute('width') || svg.getAttribute('viewBox')?.split(' ')[2] || 600;
+                        const svgHeight = svg.getAttribute('height') || svg.getAttribute('viewBox')?.split(' ')[3] || 300;
+                        canvas.width = typeof svgWidth === 'string' && svgWidth.includes('%') ? 600 : parseInt(svgWidth);
+                        canvas.height = typeof svgHeight === 'string' && svgHeight.includes('%') ? 300 : parseInt(svgHeight);
+                        
+                        // Create image from SVG
+                        const img = new Image();
+                        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                        const url = URL.createObjectURL(svgBlob);
+                        
+                        img.onload = function() {
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            URL.revokeObjectURL(url);
+                            
+                            // Add the chart image to PDF
+                            const imgData = canvas.toDataURL('image/png');
+                            
+                            // Add a new page for the chart
+                            doc.addPage();
+                            
+                            // Add title for chart page
+                            const chartType = document.getElementById('chartType').value;
+                            const metricType = document.getElementById('chartMetric').value;
+                            const chartTitle = `PILT ${metricType} Chart (${chartType})`;
+                            
+                            doc.setFontSize(16);
+                            doc.text(chartTitle, 14, 20);
+                            
+                            // Add the chart image with proper scaling
+                            const pageWidth = doc.internal.pageSize.getWidth();
+                            const pageHeight = doc.internal.pageSize.getHeight();
+                            const imgWidth = Math.min(pageWidth - 28, canvas.width * 0.5);
+                            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                            
+                            doc.addImage(imgData, 'PNG', 14, 30, imgWidth, imgHeight);
+                            
+                            // Save the PDF
+                            doc.save('PILT_Dashboard_Report.pdf');
+                        };
+                        
+                        img.src = url;
+                    } else {
+                        // If no chart is available, just save the PDF with the table
+                        doc.save('PILT_Dashboard_Report.pdf');
+                    }
+                } catch (error) {
+                    console.error('Error adding chart to PDF:', error);
+                    // Save without the chart if there was an error
+                    doc.save('PILT_Dashboard_Report.pdf');
+                }
+            });
+            
+            // Export to Excel
+            document.getElementById('exportExcel').addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Check if SheetJS is available
+                if (typeof XLSX === 'undefined') {
+                    alert('Excel export library not loaded. Please check your internet connection.');
+                    return;
+                }
+                
+                try {
+                    // Create a new workbook
+                    const wb = XLSX.utils.book_new();
+                    
+                    // Prepare data for PILT table
+                    const tableData = [
+                        ['District', 'Assessed Value', 'Levy Rate', 'Base PILT', 'Deduction', 'PILT Due']
+                    ];
+                    
+                    // Add data rows
+                    piltData.forEach(district => {
+                        tableData.push([
+                            district.district,
+                            district.assessedValue,  // Use raw numbers for Excel
+                            district.levyRate,
+                            district.basePILT,
+                            district.deduction,
+                            district.piltDue
+                        ]);
+                    });
+                    
+                    // Add totals row
+                    tableData.push([
+                        'Total',
+                        totals.assessedValue,
+                        '',
+                        totals.basePILT,
+                        totals.deduction,
+                        totals.piltDue
+                    ]);
+                    
+                    // Create worksheet from data
+                    const ws = XLSX.utils.aoa_to_sheet(tableData);
+                    
+                    // Add worksheet to workbook
+                    XLSX.utils.book_append_sheet(wb, ws, 'PILT Data');
+                    
+                    // Apply Excel formatting for columns B, D, E, F (assessed value, base PILT, deduction, PILT due)
+                    const currencyCols = ['B', 'D', 'E', 'F'];
+                    const lastRow = tableData.length;
+                    
+                    currencyCols.forEach(col => {
+                        for (let i = 2; i <= lastRow; i++) {
+                            const cellRef = `${col}${i}`;
+                            if (!ws[cellRef]) continue;
+                            
+                            ws[cellRef].z = '$#,##0.00';
+                        }
+                    });
+                    
+                    // Format column C (levy rate) with 4 decimal places
+                    for (let i = 2; i <= lastRow; i++) {
+                        const cellRef = `C${i}`;
+                        if (!ws[cellRef]) continue;
+                        
+                        ws[cellRef].z = '0.0000';
+                    }
+                    
+                    // Set column widths
+                    ws['!cols'] = [
+                        { wch: 25 },  // District
+                        { wch: 15 },  // Assessed Value
+                        { wch: 10 },  // Levy Rate
+                        { wch: 15 },  // Base PILT
+                        { wch: 15 },  // Deduction
+                        { wch: 15 }   // PILT Due
+                    ];
+                    
+                    // Add What-If Analysis sheet if data is available
+                    const whatIfTableBody = document.getElementById('whatIfTableBody');
+                    if (whatIfTableBody.rows.length > 0) {
+                        const whatIfData = [
+                            ['District', 'Original PILT', 'New PILT', 'Difference', '% Change']
+                        ];
+                        
+                        // Extract data from the what-if table
+                        Array.from(whatIfTableBody.rows).forEach(row => {
+                            whatIfData.push([
+                                row.cells[0].textContent,
+                                parseFloat(row.cells[1].textContent.replace(/[$,]/g, '')),
+                                parseFloat(row.cells[2].textContent.replace(/[$,]/g, '')),
+                                parseFloat(row.cells[3].textContent.replace(/[$,]/g, '')),
+                                parseFloat(row.cells[4].textContent.replace(/%/g, '')) / 100
+                            ]);
+                        });
+                        
+                        // Add totals from footer if available
+                        const whatIfTableFoot = document.getElementById('whatIfTableFoot');
+                        if (whatIfTableFoot.rows.length > 0) {
+                            const footRow = whatIfTableFoot.rows[0];
+                            whatIfData.push([
+                                footRow.cells[0].textContent,
+                                parseFloat(footRow.cells[1].textContent.replace(/[$,]/g, '')),
+                                parseFloat(footRow.cells[2].textContent.replace(/[$,]/g, '')),
+                                parseFloat(footRow.cells[3].textContent.replace(/[$,]/g, '')),
+                                parseFloat(footRow.cells[4].textContent.replace(/%/g, '')) / 100
+                            ]);
+                        }
+                        
+                        // Create What-If worksheet and add to workbook
+                        const whatIfWs = XLSX.utils.aoa_to_sheet(whatIfData);
+                        XLSX.utils.book_append_sheet(wb, whatIfWs, 'What-If Analysis');
+                        
+                        // Apply formatting to What-If sheet
+                        whatIfWs['!cols'] = [
+                            { wch: 25 },  // District
+                            { wch: 15 },  // Original PILT
+                            { wch: 15 },  // New PILT
+                            { wch: 15 },  // Difference
+                            { wch: 12 }   // % Change
+                        ];
+                        
+                        // Format currency columns
+                        ['B', 'C', 'D'].forEach(col => {
+                            for (let i = 2; i <= whatIfData.length; i++) {
+                                const cellRef = `${col}${i}`;
+                                if (!whatIfWs[cellRef]) continue;
+                                
+                                whatIfWs[cellRef].z = '$#,##0.00';
+                            }
+                        });
+                        
+                        // Format percentage column
+                        for (let i = 2; i <= whatIfData.length; i++) {
+                            const cellRef = `E${i}`;
+                            if (!whatIfWs[cellRef]) continue;
+                            
+                            whatIfWs[cellRef].z = '0.00%';
+                        }
+                    }
+                    
+                    // Add metadata
+                    wb.Props = {
+                        Title: "Benton County PILT Dashboard Report",
+                        Author: "PILT Dashboard Application",
+                        CreatedDate: new Date()
+                    };
+                    
+                    // Export the Excel file
+                    XLSX.writeFile(wb, 'PILT_Dashboard_Report.xlsx');
+                    
+                } catch (error) {
+                    console.error('Error exporting to Excel:', error);
+                    alert('Error generating Excel file: ' + error.message);
+                }
+            });
+            
+            // Export to CSV
+            document.getElementById('exportCSV').addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                try {
+                    // Prepare CSV content
+                    let csvContent = 'District,Assessed Value,Levy Rate,Base PILT,Deduction,PILT Due\n';
+                    
+                    // Add data rows
+                    piltData.forEach(district => {
+                        csvContent += `"${district.district}",${district.assessedValue},${district.levyRate},${district.basePILT},${district.deduction},${district.piltDue}\n`;
+                    });
+                    
+                    // Add totals row
+                    csvContent += `"Total",${totals.assessedValue},,${totals.basePILT},${totals.deduction},${totals.piltDue}\n`;
+                    
+                    // Create download link
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', 'PILT_Dashboard_Report.csv');
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                } catch (error) {
+                    console.error('Error exporting to CSV:', error);
+                    alert('Error generating CSV file: ' + error.message);
+                }
+            });
+            
+            // Print view
+            document.getElementById('exportPrint').addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                try {
+                    // Create a print-friendly view in a new window
+                    const printWindow = window.open('', '_blank', 'width=800,height=600');
+                    
+                    // Generate print-friendly content
+                    printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>PILT Dashboard Report - Print View</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; margin: 20px; }
+                                h1 { color: #0077b6; }
+                                table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+                                th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+                                th { background-color: #0077b6; color: white; text-align: center; }
+                                td:first-child, th:first-child { text-align: left; }
+                                tfoot { font-weight: bold; background-color: #f0f0f0; }
+                                .chart-container { page-break-before: always; margin-top: 20px; }
+                                .chart-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+                                @media print {
+                                    .no-print { display: none; }
+                                    button { display: none; }
+                                }
+                                .controls { margin: 20px 0; }
+                                button { padding: 8px 15px; background: #0077b6; color: white; border: none; cursor: pointer; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="controls no-print">
+                                <button onclick="window.print()">Print Report</button>
+                                <button onclick="window.close()">Close</button>
+                            </div>
+                            
+                            <h1>Benton County PILT Dashboard Report</h1>
+                            <p>Generated: ${new Date().toLocaleDateString()}</p>
+                            
+                            <h2>PILT Data by District</h2>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>District</th>
+                                        <th>Assessed Value</th>
+                                        <th>Levy Rate</th>
+                                        <th>Base PILT</th>
+                                        <th>Deduction</th>
+                                        <th>PILT Due</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `);
+                    
+                    // Add data rows
+                    piltData.forEach(district => {
+                        printWindow.document.write(`
+                            <tr>
+                                <td>${district.district}</td>
+                                <td>${formatCurrency(district.assessedValue)}</td>
+                                <td>${formatRate(district.levyRate)}</td>
+                                <td>${formatCurrency(district.basePILT)}</td>
+                                <td>${formatCurrency(district.deduction)}</td>
+                                <td>${formatCurrency(district.piltDue)}</td>
+                            </tr>
+                        `);
+                    });
+                    
+                    // Add totals
+                    printWindow.document.write(`
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td>Total</td>
+                                        <td>${formatCurrency(totals.assessedValue)}</td>
+                                        <td>-</td>
+                                        <td>${formatCurrency(totals.basePILT)}</td>
+                                        <td>${formatCurrency(totals.deduction)}</td>
+                                        <td>${formatCurrency(totals.piltDue)}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                    `);
+                    
+                    // Add chart if available
+                    const chartContainer = document.getElementById('chartContainer');
+                    const svg = chartContainer.querySelector('svg');
+                    
+                    if (svg) {
+                        const svgData = new XMLSerializer().serializeToString(svg);
+                        const chartType = document.getElementById('chartType').value;
+                        const metricType = document.getElementById('chartMetric').value;
+                        
+                        printWindow.document.write(`
+                            <div class="chart-container">
+                                <div class="chart-title">PILT ${metricType} Chart (${chartType})</div>
+                                ${svgData}
+                            </div>
+                        `);
+                    }
+                    
+                    // Add What-If analysis table if available
+                    const whatIfTableBody = document.getElementById('whatIfTableBody');
+                    if (whatIfTableBody.rows.length > 0) {
+                        printWindow.document.write(`
+                            <div class="chart-container">
+                                <h2>What-If Scenario Analysis</h2>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>District</th>
+                                            <th>Original PILT</th>
+                                            <th>New PILT</th>
+                                            <th>Difference</th>
+                                            <th>% Change</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `);
+                        
+                        // Add rows from the What-If table
+                        Array.from(whatIfTableBody.rows).forEach(row => {
+                            printWindow.document.write(`
+                                <tr>
+                                    <td>${row.cells[0].textContent}</td>
+                                    <td>${row.cells[1].textContent}</td>
+                                    <td>${row.cells[2].textContent}</td>
+                                    <td>${row.cells[3].textContent}</td>
+                                    <td>${row.cells[4].textContent}</td>
+                                </tr>
+                            `);
+                        });
+                        
+                        // Add totals from What-If footer
+                        const whatIfTableFoot = document.getElementById('whatIfTableFoot');
+                        if (whatIfTableFoot.rows.length > 0) {
+                            const footRow = whatIfTableFoot.rows[0];
+                            
+                            printWindow.document.write(`
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td>${footRow.cells[0].textContent}</td>
+                                            <td>${footRow.cells[1].textContent}</td>
+                                            <td>${footRow.cells[2].textContent}</td>
+                                            <td>${footRow.cells[3].textContent}</td>
+                                            <td>${footRow.cells[4].textContent}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            `);
+                        } else {
+                            printWindow.document.write(`
+                                    </tbody>
+                                </table>
+                            `);
+                        }
+                    }
+                    
+                    // Finish the document and trigger focus
+                    printWindow.document.write(`
+                            <div class="controls no-print" style="margin-top: 30px;">
+                                <button onclick="window.print()">Print Report</button>
+                                <button onclick="window.close()">Close</button>
+                            </div>
+                        </body>
+                        </html>
+                    `);
+                    
+                    printWindow.document.close();
+                    printWindow.focus();
+                    
+                } catch (error) {
+                    console.error('Error creating print view:', error);
+                    alert('Error creating print view: ' + error.message);
+                }
+            });
+            
+            // Original export button redirects to PDF
+            document.getElementById('exportBtn').addEventListener('click', function() {
+                document.getElementById('exportPDF').click();
             });
             
             // File upload and processing functionality
