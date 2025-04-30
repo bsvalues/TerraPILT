@@ -15,7 +15,7 @@ import json
 from datetime import datetime
 
 # Import custom modules
-from database import get_database_connection, load_data, get_pilt_data, get_historical_pilt_data, get_districts
+from database import get_engine, execute_query, get_pilt_data, get_historical_pilt_data, get_districts
 from calculations import (
     calculate_pilt, 
     perform_what_if_analysis, 
@@ -174,11 +174,25 @@ if st.session_state.pilt_data is not None and not st.session_state.pilt_data.emp
         # Calculate PILT
         if st.button("Calculate PILT"):
             with st.spinner("Calculating PILT..."):
-                st.session_state.calculated_data = calculate_pilt(
-                    st.session_state.pilt_data, 
-                    deductions=deductions if use_deductions else {}
-                )
-                st.success("PILT calculation completed!")
+                try:
+                    calculated_data, validation_results = calculate_pilt(
+                        st.session_state.pilt_data, 
+                        deductions=deductions if use_deductions else {}
+                    )
+                    
+                    # Store the calculated data in session state
+                    st.session_state.calculated_data = calculated_data
+                    
+                    # Display validation warnings if any
+                    if validation_results["warnings"]:
+                        st.warning("Calculation completed with warnings:")
+                        for warning in validation_results["warnings"]:
+                            st.write(f"- {warning}")
+                    
+                    st.success("PILT calculation completed!")
+                except Exception as e:
+                    st.error(f"Error calculating PILT: {str(e)}")
+                    st.session_state.calculated_data = None
         
         # Display calculated data if available
         if st.session_state.calculated_data is not None:
