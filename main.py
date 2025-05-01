@@ -24,6 +24,12 @@ from calculations import (
     generate_historical_pilt_trend
 )
 from initialize_database import initialize_database
+from data_import import (
+    import_from_excel,
+    import_from_csv,
+    create_sample_excel_template,
+    create_sample_csv_templates
+)
 
 # Configure Streamlit page
 st.set_page_config(
@@ -94,39 +100,293 @@ st.sidebar.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Data source selection with better styling
-st.sidebar.markdown("### Data Source")
-st.sidebar.markdown("Select the source of property data for PILT calculations:")
-data_source = st.sidebar.radio("Select data source", ("SQL Database", "Excel File"))
+# Create tabs in the sidebar for different functions
+sidebar_tab1, sidebar_tab2 = st.sidebar.tabs(["Dashboard", "Database Admin"])
 
-# Load data based on selected source
-try:
-    if data_source == "SQL Database":
-        if st.sidebar.button("Load Data from Database"):
-            with st.spinner("Loading data from database..."):
-                st.session_state.pilt_data = get_pilt_data()
-                st.session_state.historical_data = get_historical_pilt_data()
-                st.success("Data loaded successfully!")
-    else:
-        uploaded_file = st.sidebar.file_uploader("Upload PILT Excel File", type=["xlsx", "xls"])
-        if uploaded_file is not None:
-            try:
-                sheet_name = st.sidebar.text_input("Sheet Name", "2023")
-                st.session_state.pilt_data = pd.read_excel(uploaded_file, sheet_name=sheet_name)
-                st.success("Excel file loaded successfully!")
-                
-                # Try to load historical data if available
+with sidebar_tab1:
+    # Data source selection with better styling
+    st.markdown("### Data Source")
+    st.markdown("Select the source of property data for PILT calculations:")
+    data_source = st.radio("Select data source", ("SQL Database", "Excel File"))
+    
+    # Load data based on selected source
+    try:
+        if data_source == "SQL Database":
+            if st.button("Load Data from Database"):
+                with st.spinner("Loading data from database..."):
+                    st.session_state.pilt_data = get_pilt_data()
+                    st.session_state.historical_data = get_historical_pilt_data()
+                    st.success("Data loaded successfully!")
+        else:
+            uploaded_file = st.file_uploader("Upload PILT Excel File", type=["xlsx", "xls"])
+            if uploaded_file is not None:
                 try:
-                    historical_sheet = st.sidebar.text_input("Historical Data Sheet (Optional)", "Historical")
-                    st.session_state.historical_data = pd.read_excel(uploaded_file, sheet_name=historical_sheet)
-                except Exception:
-                    st.warning("Could not load historical data sheet. Year-over-year analysis may be limited.")
+                    sheet_name = st.text_input("Sheet Name", "2023")
+                    st.session_state.pilt_data = pd.read_excel(uploaded_file, sheet_name=sheet_name)
+                    st.success("Excel file loaded successfully!")
+                    
+                    # Try to load historical data if available
+                    try:
+                        historical_sheet = st.text_input("Historical Data Sheet (Optional)", "Historical")
+                        st.session_state.historical_data = pd.read_excel(uploaded_file, sheet_name=historical_sheet)
+                    except Exception:
+                        st.warning("Could not load historical data sheet. Year-over-year analysis may be limited.")
+                except Exception as e:
+                    st.error(f"Error loading Excel file: {str(e)}")
+                    st.session_state.pilt_data = None
+    except Exception as e:
+        st.error(f"Error loading data: {str(e)}")
+        st.session_state.pilt_data = None
+
+with sidebar_tab2:
+    st.markdown("### Database Administration")
+    st.markdown("Import data directly into the database or download templates")
+    
+    # Database Import Options
+    import_option = st.selectbox("Import Option", 
+                                ["Import from Excel", "Import from CSV", "Download Template"])
+    
+    if import_option == "Import from Excel":
+        st.markdown("#### Import from Excel")
+        st.markdown("Upload an Excel file with data to import into the database")
+        
+        excel_file = st.file_uploader("Upload Excel File", type=["xlsx", "xls"], key="excel_import")
+        
+        if excel_file is not None:
+            # Save the uploaded file temporarily
+            temp_file = os.path.join(tempfile.gettempdir(), "import_data.xlsx")
+            with open(temp_file, "wb") as f:
+                f.write(excel_file.getvalue())
+                
+            # Options for import
+            district_sheet = st.text_input("Districts Sheet Name", "Districts")
+            property_sheet = st.text_input("Properties Sheet Name", "Properties")
+            levy_rate_sheet = st.text_input("Levy Rates Sheet Name", "LevyRates")
+            deduction_sheet = st.text_input("Deductions Sheet Name", "Deductions")
+            year = st.number_input("Default Year", value=2025, min_value=2000, max_value=2100)
+            clear_existing = st.checkbox("Clear existing data before import")
+            
+            if st.button("Import Excel Data"):
+                with st.spinner("Importing data from Excel..."):
+                    try:
+                        # Perform the import
+                        results = import_from_excel(
+                            temp_file,
+                            district_sheet=district_sheet,
+                            property_sheet=property_sheet,
+                            levy_rate_sheet=levy_rate_sheet,
+                            deduction_sheet=deduction_sheet,
+                            year=year,
+                            clear_existing=clear_existing
+                        )
+                        
+                        if results["success"]:
+                            st.success("Data imported successfully!")
+                            st.write(f"Districts Imported: {results['districts_imported']}")
+                            st.write(f"Properties Imported: {results['properties_imported']}")
+                            st.write(f"Levy Rates Imported: {results['levy_rates_imported']}")
+                            st.write(f"Deductions Imported: {results['deductions_imported']}")
+                            
+                            if results["warnings"]:
+                                st.warning("Warnings during import:")
+                                for warning in results["warnings"]:
+                                    st.write(f"- {warning}")
+                        else:
+                            st.error("Import failed.")
+                            for error in results["errors"]:
+                                st.error(error)
+                    except Exception as e:
+                        st.error(f"Error during import: {str(e)}")
+    
+    elif import_option == "Import from CSV":
+        st.markdown("#### Import from CSV")
+        st.markdown("Upload CSV files with data to import into the database")
+        
+        # District file (required)
+        st.markdown("**Districts File (Required)**")
+        district_file = st.file_uploader("Upload Districts CSV", type=["csv"], key="district_csv")
+        
+        # Property file (optional)
+        st.markdown("**Properties File (Optional)**")
+        property_file = st.file_uploader("Upload Properties CSV", type=["csv"], key="property_csv")
+        
+        # Levy rate file (optional)
+        st.markdown("**Levy Rates File (Optional)**")
+        levy_rate_file = st.file_uploader("Upload Levy Rates CSV", type=["csv"], key="levy_rate_csv")
+        
+        # Deduction file (optional)
+        st.markdown("**Deductions File (Optional)**")
+        deduction_file = st.file_uploader("Upload Deductions CSV", type=["csv"], key="deduction_csv")
+        
+        # Import options
+        year = st.number_input("Default Year", value=2025, min_value=2000, max_value=2100, key="csv_year")
+        clear_existing = st.checkbox("Clear existing data before import", key="csv_clear")
+        
+        if district_file is not None and st.button("Import CSV Data"):
+            with st.spinner("Importing data from CSV files..."):
+                try:
+                    # Save files temporarily
+                    temp_district_file = os.path.join(tempfile.gettempdir(), "districts.csv")
+                    with open(temp_district_file, "wb") as f:
+                        f.write(district_file.getvalue())
+                    
+                    temp_property_file = None
+                    if property_file is not None:
+                        temp_property_file = os.path.join(tempfile.gettempdir(), "properties.csv")
+                        with open(temp_property_file, "wb") as f:
+                            f.write(property_file.getvalue())
+                    
+                    temp_levy_rate_file = None
+                    if levy_rate_file is not None:
+                        temp_levy_rate_file = os.path.join(tempfile.gettempdir(), "levy_rates.csv")
+                        with open(temp_levy_rate_file, "wb") as f:
+                            f.write(levy_rate_file.getvalue())
+                    
+                    temp_deduction_file = None
+                    if deduction_file is not None:
+                        temp_deduction_file = os.path.join(tempfile.gettempdir(), "deductions.csv")
+                        with open(temp_deduction_file, "wb") as f:
+                            f.write(deduction_file.getvalue())
+                    
+                    # Perform the import
+                    results = import_from_csv(
+                        temp_district_file,
+                        property_file=temp_property_file,
+                        levy_rate_file=temp_levy_rate_file,
+                        deduction_file=temp_deduction_file,
+                        year=year,
+                        clear_existing=clear_existing
+                    )
+                    
+                    if results["success"]:
+                        st.success("Data imported successfully!")
+                        st.write(f"Districts Imported: {results['districts_imported']}")
+                        st.write(f"Properties Imported: {results['properties_imported']}")
+                        st.write(f"Levy Rates Imported: {results['levy_rates_imported']}")
+                        st.write(f"Deductions Imported: {results['deductions_imported']}")
+                        
+                        if results["warnings"]:
+                            st.warning("Warnings during import:")
+                            for warning in results["warnings"]:
+                                st.write(f"- {warning}")
+                    else:
+                        st.error("Import failed.")
+                        for error in results["errors"]:
+                            st.error(error)
+                except Exception as e:
+                    st.error(f"Error during import: {str(e)}")
+    
+    elif import_option == "Download Template":
+        st.markdown("#### Download Templates")
+        st.markdown("Download template files for importing data into the database")
+        
+        template_type = st.radio("Template Type", ["Excel", "CSV"])
+        
+        if template_type == "Excel":
+            if st.button("Generate Excel Template"):
+                with st.spinner("Generating Excel template..."):
+                    try:
+                        # Create a temporary file for the template
+                        temp_excel_file = os.path.join(tempfile.gettempdir(), "pilt_template.xlsx")
+                        
+                        # Create the template
+                        if create_sample_excel_template(temp_excel_file):
+                            # Read the file for download
+                            with open(temp_excel_file, "rb") as f:
+                                excel_bytes = f.read()
+                                
+                            # Create a download button
+                            st.download_button(
+                                label="Download Excel Template",
+                                data=excel_bytes,
+                                file_name="pilt_import_template.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+                            
+                            st.success("Excel template generated successfully!")
+                            st.info("Click the button above to download the template")
+                        else:
+                            st.error("Failed to generate Excel template")
+                    except Exception as e:
+                        st.error(f"Error generating Excel template: {str(e)}")
+        
+        else:  # CSV
+            if st.button("Generate CSV Templates"):
+                with st.spinner("Generating CSV templates..."):
+                    try:
+                        # Create a temporary directory for the templates
+                        temp_csv_dir = os.path.join(tempfile.gettempdir(), "pilt_csv_templates")
+                        os.makedirs(temp_csv_dir, exist_ok=True)
+                        
+                        # Create the templates
+                        if create_sample_csv_templates(temp_csv_dir):
+                            # Create a ZIP file with all templates
+                            import zipfile
+                            zip_path = os.path.join(tempfile.gettempdir(), "pilt_csv_templates.zip")
+                            with zipfile.ZipFile(zip_path, 'w') as zipf:
+                                for root, dirs, files in os.walk(temp_csv_dir):
+                                    for file in files:
+                                        file_path = os.path.join(root, file)
+                                        zipf.write(file_path, os.path.basename(file_path))
+                            
+                            # Read the ZIP file for download
+                            with open(zip_path, "rb") as f:
+                                zip_bytes = f.read()
+                                
+                            # Create a download button
+                            st.download_button(
+                                label="Download CSV Templates",
+                                data=zip_bytes,
+                                file_name="pilt_import_templates.zip",
+                                mime="application/zip"
+                            )
+                            
+                            st.success("CSV templates generated successfully!")
+                            st.info("Click the button above to download the templates (ZIP file)")
+                        else:
+                            st.error("Failed to generate CSV templates")
+                    except Exception as e:
+                        st.error(f"Error generating CSV templates: {str(e)}")
+    
+    # Database status section
+    st.markdown("#### Database Status")
+    if st.button("Check Database Status"):
+        with st.spinner("Checking database status..."):
+            try:
+                # Execute a query to check district count
+                from database import execute_query
+                
+                # Check districts
+                district_query = "SELECT COUNT(*) as district_count FROM districts"
+                district_result = execute_query(district_query)
+                district_count = district_result.iloc[0]['district_count'] if not district_result.empty else 0
+                
+                # Check properties
+                property_query = "SELECT COUNT(*) as property_count FROM properties"
+                property_result = execute_query(property_query)
+                property_count = property_result.iloc[0]['property_count'] if not property_result.empty else 0
+                
+                # Check levy rates
+                levy_query = "SELECT COUNT(*) as levy_count FROM levy_rates"
+                levy_result = execute_query(levy_query)
+                levy_count = levy_result.iloc[0]['levy_count'] if not levy_result.empty else 0
+                
+                # Check deductions
+                deduction_query = "SELECT COUNT(*) as deduction_count FROM deductions"
+                deduction_result = execute_query(deduction_query)
+                deduction_count = deduction_result.iloc[0]['deduction_count'] if not deduction_result.empty else 0
+                
+                # Display results
+                st.success("Database connection successful!")
+                st.write(f"Districts: {district_count}")
+                st.write(f"Properties: {property_count}")
+                st.write(f"Levy Rates: {levy_count}")
+                st.write(f"Deductions: {deduction_count}")
+                
+                if district_count == 0:
+                    st.warning("No districts found in the database. Import data using the options above.")
             except Exception as e:
-                st.error(f"Error loading Excel file: {str(e)}")
-                st.session_state.pilt_data = None
-except Exception as e:
-    st.error(f"Error loading data: {str(e)}")
-    st.session_state.pilt_data = None
+                st.error(f"Error checking database status: {str(e)}")
 
 # Main content area - only show if data is loaded
 if st.session_state.pilt_data is not None and not st.session_state.pilt_data.empty:
