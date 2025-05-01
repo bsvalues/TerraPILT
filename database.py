@@ -222,25 +222,60 @@ def get_historical_pilt_data(years=4):
     Returns:
         pd.DataFrame: Historical PILT data for visualization
     """
-    # This is a simplified query for demonstration
+    from datetime import datetime  # Import here to ensure availability
+    
+    # Try to get real historical data from the database
     try:
-        # Generate historical data for the current year and previous years
         current_year = datetime.now().year
+        
+        # Query to get historical data by year from our database
         sql_query = f"""
-        SELECT 
-            generate_series({current_year-years+1}, {current_year}, 1) AS year,
-            (random() * 70000000 + 30000000)::numeric(15,2) * 
-              (1 + (generate_series(0, {years-1}, 1)::float/20)) AS total_assessed_value,
-            (random() * 0.3 + 0.8)::numeric(5,4) * 
-              (1 + (generate_series(0, {years-1}, 1)::float/50)) AS avg_levy_rate
+        WITH yearly_data AS (
+            SELECT 
+                lr.year,
+                SUM(p.assessed_value) AS total_assessed_value,
+                AVG(lr.rate) AS avg_levy_rate
+            FROM 
+                properties p
+            JOIN 
+                districts d ON p.district_id = d.id
+            JOIN 
+                levy_rates lr ON d.id = lr.district_id
+            WHERE 
+                lr.year BETWEEN {current_year-years+1} AND {current_year}
+            GROUP BY 
+                lr.year
+            ORDER BY 
+                lr.year
+        )
+        SELECT * FROM yearly_data
         """
-        return execute_query(sql_query)
+        
+        result = execute_query(sql_query)
+        
+        # If we don't have enough historical data, fill in with backup data
+        if len(result) < years:
+            logger.warning(f"Insufficient historical data, using backup query")
+            
+            # Use a backup query that generates data if the database doesn't have enough
+            backup_query = f"""
+            SELECT 
+                generate_series({current_year-years+1}, {current_year}, 1) AS year,
+                (random() * 70000000 + 30000000)::numeric(15,2) * 
+                  (1 + (generate_series(0, {years-1}, 1)::float/20)) AS total_assessed_value,
+                (random() * 0.3 + 0.8)::numeric(5,4) * 
+                  (1 + (generate_series(0, {years-1}, 1)::float/50)) AS avg_levy_rate
+            """
+            return execute_query(backup_query)
+        
+        return result
     except Exception as e:
-        # If the historical query fails, create a message but don't crash the application
+        # If the query fails, log the error but don't crash the application
+        logger.error(f"Unable to retrieve historical data: {str(e)}")
         st.warning(f"Unable to retrieve historical data: {str(e)}")
-        # Create sample historical data
+        
+        # Create fallback data
         import pandas as pd
-        from datetime import datetime
         
         current_year = datetime.now().year
         years_list = list(range(current_year-years+1, current_year+1))
@@ -259,31 +294,38 @@ def get_districts():
         pd.DataFrame: District information
     """
     try:
-        # Generate sample districts
-        sql_query = """
+        # Get the current year
+        from datetime import datetime
+        current_year = datetime.now().year
+        
+        # Query to get actual districts from the database with their levy rates
+        sql_query = f"""
         SELECT 
-            CASE 
-                WHEN generate_series(1, 4) = 1 THEN 'Current Expense'
-                WHEN generate_series(1, 4) = 2 THEN 'County Road'
-                WHEN generate_series(1, 4) = 3 THEN 'State School'
-                ELSE 'City'
-            END AS district_name,
-            CASE 
-                WHEN generate_series(1, 4) = 1 THEN 'CE'
-                WHEN generate_series(1, 4) = 2 THEN 'CR'
-                WHEN generate_series(1, 4) = 3 THEN 'SS'
-                ELSE 'CY'
-            END AS district_code,
-            CASE 
-                WHEN generate_series(1, 4) = 1 THEN 0.9007089219 
-                WHEN generate_series(1, 4) = 2 THEN 1.2145630000
-                WHEN generate_series(1, 4) = 3 THEN 0.8532140000
-                ELSE 1.4532650000
-            END AS levy_rate
+            d.name AS district_name,
+            d.code AS district_code,
+            lr.rate AS levy_rate
+        FROM 
+            districts d
+        JOIN 
+            levy_rates lr ON d.id = lr.district_id
+        WHERE 
+            lr.year = {current_year}
+        ORDER BY
+            d.name
         """
-        return execute_query(sql_query)
+        
+        districts = execute_query(sql_query)
+        
+        if districts.empty:
+            logger.warning("No districts found in database, using fallback data")
+            raise Exception("No districts found")
+            
+        return districts
     except Exception as e:
         # If districts query fails, return a default district dataframe
+        logger.error(f"Error retrieving districts: {str(e)}")
+        
+        import pandas as pd
         districts = pd.DataFrame({
             'district_name': ['Current Expense', 'County Road', 'State School', 'City'],
             'district_code': ['CE', 'CR', 'SS', 'CY'],
