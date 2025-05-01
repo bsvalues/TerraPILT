@@ -23,12 +23,13 @@ def validate_pilt_dataframe(df: pd.DataFrame) -> Dict[str, Any]:
         df (pd.DataFrame): DataFrame to validate
         
     Returns:
-        Dict[str, Any]: Validation results with keys 'valid', 'errors', 'warnings'
+        Dict[str, Any]: Validation results with keys 'valid', 'errors', 'warnings', 'df'
     """
     results = {
         'valid': True,
         'errors': [],
-        'warnings': []
+        'warnings': [],
+        'df': df.copy()  # Include a copy of the dataframe in results
     }
     
     # Check if DataFrame is empty
@@ -59,8 +60,15 @@ def validate_pilt_dataframe(df: pd.DataFrame) -> Dict[str, Any]:
         if 'Assessed_Value' in df.columns:
             # Check that Assessed_Value is numeric
             if not pd.api.types.is_numeric_dtype(df['Assessed_Value']):
-                results['valid'] = False
-                results['errors'].append("'Assessed_Value' column must contain numeric values")
+                # Try to convert to numeric
+                try:
+                    results['df']['Assessed_Value'] = pd.to_numeric(df['Assessed_Value'], errors='coerce')
+                    null_count = results['df']['Assessed_Value'].isna().sum()
+                    if null_count > 0:
+                        results['warnings'].append(f"Converted 'Assessed_Value' column to numeric, but {null_count} values became NaN")
+                except Exception as e:
+                    results['valid'] = False
+                    results['errors'].append(f"'Assessed_Value' column must contain numeric values: {str(e)}")
             else:
                 # Check for negative values
                 neg_values = (df['Assessed_Value'] < 0).sum()
@@ -80,8 +88,15 @@ def validate_pilt_dataframe(df: pd.DataFrame) -> Dict[str, Any]:
         if 'Levy_Rate' in df.columns:
             # Check that Levy_Rate is numeric
             if not pd.api.types.is_numeric_dtype(df['Levy_Rate']):
-                results['valid'] = False
-                results['errors'].append("'Levy_Rate' column must contain numeric values")
+                # Try to convert to numeric
+                try:
+                    results['df']['Levy_Rate'] = pd.to_numeric(df['Levy_Rate'], errors='coerce')
+                    null_count = results['df']['Levy_Rate'].isna().sum()
+                    if null_count > 0:
+                        results['warnings'].append(f"Converted 'Levy_Rate' column to numeric, but {null_count} values became NaN")
+                except Exception as e:
+                    results['valid'] = False
+                    results['errors'].append(f"'Levy_Rate' column must contain numeric values: {str(e)}")
             else:
                 # Check for negative values
                 neg_values = (df['Levy_Rate'] < 0).sum()
@@ -100,8 +115,11 @@ def validate_pilt_dataframe(df: pd.DataFrame) -> Dict[str, Any]:
             if empty_districts > 0:
                 results['valid'] = False
                 results['errors'].append(f"'District' column contains {empty_districts} empty values")
+            
+            # Clean up district names by stripping whitespace
+            results['df']['District'] = results['df']['District'].astype(str).str.strip()
     
-    # Return validation results
+    # Return validation results with the processed dataframe
     return results
 
 def validate_what_if_options(

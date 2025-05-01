@@ -29,59 +29,103 @@ def calculate_pilt(df: pd.DataFrame, deductions: dict = {}, validate: bool = Tru
     Raises:
         ValidationError: If validation is enabled and the data fails validation
     """
+    # Initialize validation result
     validation_result = {"valid": True, "errors": [], "warnings": []}
     
-    # Validate input data if requested
-    if validate:
-        validation_result = validate_pilt_dataframe(df)
-        if not validation_result["valid"]:
-            error_msg = "; ".join(validation_result["errors"])
-            logger.error(f"Validation failed: {error_msg}")
-            raise ValidationError(f"PILT calculation failed due to validation errors", 
-                                 validation_result["errors"])
-        
-        # Use the validated DataFrame
-        working_df = validation_result["df"]
-    else:
-        # Skip validation but still make a copy
+    try:
+        # Make a copy to avoid modifying the original data
         working_df = df.copy()
-    
-    # Calculate the base PILT (assessed value per $1000 * levy rate)
-    working_df['Base_PILT'] = (working_df['Assessed_Value'] / 1000) * working_df['Levy_Rate']
-    
-    # Apply deductions if provided
-    if deductions:
-        # Validate deductions
-        invalid_districts = [d for d in deductions.keys() 
-                            if d not in working_df['District'].unique()]
-        if invalid_districts:
-            warning = f"Deductions provided for non-existent districts: {invalid_districts}"
+        
+        # Validate input data if requested
+        if validate:
+            try:
+                validation_result = validate_pilt_dataframe(df)
+                if not validation_result["valid"]:
+                    error_msg = "; ".join(validation_result["errors"])
+                    logger.error(f"Validation failed: {error_msg}")
+                    raise ValidationError(f"PILT calculation failed due to validation errors: {error_msg}")
+            except Exception as e:
+                # If validation fails, log but continue with original data
+                logger.warning(f"Validation error: {str(e)}. Continuing with unvalidated data.")
+                validation_result["warnings"].append(f"Validation error: {str(e)}. Using unvalidated data.")
+        
+        # Log some information about the dataframe
+        logger.info(f"Calculating PILT for {len(working_df)} properties across {working_df['District'].nunique()} districts")
+        logger.info(f"Sample data - Districts: {working_df['District'].unique()[:5]}")
+        logger.info(f"Sample data - Assessed value range: ${working_df['Assessed_Value'].min():,.2f} to ${working_df['Assessed_Value'].max():,.2f}")
+        logger.info(f"Sample data - Levy rate range: {working_df['Levy_Rate'].min():,.6f} to {working_df['Levy_Rate'].max():,.6f}")
+        
+        # Calculate the base PILT (assessed value per $1000 * levy rate)
+        # Formula: Base PILT = (Assessed Value / 1000) * Levy Rate
+        working_df['Base_PILT'] = (working_df['Assessed_Value'] / 1000) * working_df['Levy_Rate']
+        
+        # Apply deductions if provided
+        if deductions:
+            # Validate deductions
+            invalid_districts = [d for d in deductions.keys() 
+                                if d not in working_df['District'].unique()]
+            if invalid_districts:
+                warning = f"Deductions provided for non-existent districts: {invalid_districts}"
+                validation_result["warnings"].append(warning)
+                logger.warning(warning)
+            
+            # Apply district-specific deductions
+            working_df['Deduction'] = working_df['District'].map(
+                lambda d: deductions.get(d, 0)
+            )
+        else:
+            # If no deductions provided or if 'Deduction' column exists, use it
+            if 'Deduction' in working_df.columns:
+                # Ensure it's numeric
+                working_df['Deduction'] = pd.to_numeric(working_df['Deduction'], errors='coerce').fillna(0)
+            else:
+                working_df['Deduction'] = 0
+        
+        # Log total deductions
+        total_deductions = working_df['Deduction'].sum()
+        logger.info(f"Total deductions: ${total_deductions:,.2f}")
+        
+        # Ensure deductions don't exceed Base_PILT (negative PILT_Due not allowed)
+        negative_pilt = working_df['Deduction'] > working_df['Base_PILT']
+        if negative_pilt.any():
+            warning = f"Deductions exceed Base PILT for {negative_pilt.sum()} records. Capping at Base_PILT."
             validation_result["warnings"].append(warning)
             logger.warning(warning)
+            
+            # Cap deductions at Base_PILT value
+            working_df.loc[negative_pilt, 'Deduction'] = working_df.loc[negative_pilt, 'Base_PILT']
         
-        working_df['Deduction'] = working_df['District'].map(deductions).fillna(0)
-    else:
-        working_df['Deduction'] = 0
-    
-    # Ensure deductions don't exceed Base_PILT (negative PILT_Due not allowed)
-    negative_pilt = working_df['Deduction'] > working_df['Base_PILT']
-    if negative_pilt.any():
-        warning = f"Deductions exceed Base PILT for {negative_pilt.sum()} records. Capping at Base_PILT."
-        validation_result["warnings"].append(warning)
-        logger.warning(warning)
+        # Calculate final PILT due
+        working_df['PILT_Due'] = working_df['Base_PILT'] - working_df['Deduction']
         
-        # Cap deductions at Base_PILT value
-        working_df.loc[negative_pilt, 'Deduction'] = working_df.loc[negative_pilt, 'Base_PILT']
-    
-    # Calculate final PILT due
-    working_df['PILT_Due'] = working_df['Base_PILT'] - working_df['Deduction']
-    
-    # Log calculation summary
-    total_pilt = working_df['PILT_Due'].sum()
-    district_count = working_df['District'].nunique()
-    logger.info(f"PILT calculation completed for {district_count} districts. Total PILT: ${total_pilt:,.2f}")
-    
-    return working_df, validation_result
+        # Log calculation summary
+        total_base_pilt = working_df['Base_PILT'].sum()
+        total_pilt = working_df['PILT_Due'].sum()
+        district_count = working_df['District'].nunique()
+        logger.info(f"PILT calculation completed for {district_count} districts.")
+        logger.info(f"Total Base PILT: ${total_base_pilt:,.2f}")
+        logger.info(f"Total Deductions: ${total_deductions:,.2f}")
+        logger.info(f"Total PILT Due: ${total_pilt:,.2f}")
+        
+        # Add percent of total PILT column for district summary
+        total_pilt_sum = working_df['PILT_Due'].sum()
+        if total_pilt_sum > 0:
+            working_df['PILT_Percent'] = (working_df['PILT_Due'] / total_pilt_sum) * 100
+        else:
+            working_df['PILT_Percent'] = 0
+            
+        # Ensure all amounts are properly formatted to 2 decimal places
+        for col in ['Base_PILT', 'Deduction', 'PILT_Due']:
+            working_df[col] = working_df[col].round(2)
+        
+        return working_df, validation_result
+        
+    except Exception as e:
+        logger.error(f"Error in PILT calculation: {str(e)}")
+        validation_result["valid"] = False
+        validation_result["errors"].append(f"Calculation error: {str(e)}")
+        # Return original dataframe if calculation fails
+        return df, validation_result
 
 def perform_what_if_analysis(df: pd.DataFrame, new_rates: dict = {}, 
                             value_adjustments: dict = {}, 
