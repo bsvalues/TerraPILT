@@ -260,29 +260,63 @@ def perform_what_if_analysis(df: pd.DataFrame, new_rates: dict = {},
     
     return result_df, validation_result
 
-def aggregate_pilt_by_district(df: pd.DataFrame) -> pd.DataFrame:
+def aggregate_pilt_by_district(df_input) -> pd.DataFrame:
     """
     Aggregate PILT calculations by district.
     
     Args:
-        df (pd.DataFrame): DataFrame with PILT calculations
+        df_input: Either a DataFrame with PILT calculations or a tuple of (DataFrame, validation_results)
         
     Returns:
         pd.DataFrame: Aggregated summary by district
     """
-    # Group by district and sum the relevant columns
-    summary = df.groupby('District').agg({
-        'Assessed_Value': 'sum',
-        'Base_PILT': 'sum',
-        'Deduction': 'sum',
-        'PILT_Due': 'sum'
-    }).reset_index()
-    
-    # Add average levy rate per district
-    levy_rates = df.groupby('District')['Levy_Rate'].mean().reset_index()
-    summary = summary.merge(levy_rates, on='District')
-    
-    return summary
+    try:
+        # Check if input is a tuple (DataFrame, validation_results) as returned by calculate_pilt
+        if isinstance(df_input, tuple) and len(df_input) >= 1:
+            df = df_input[0]  # Extract the DataFrame from the tuple
+            logger.info("Extracting DataFrame from tuple result")
+        else:
+            df = df_input  # Assume it's already a DataFrame
+            
+        # Basic validation to ensure we have a DataFrame
+        if not isinstance(df, pd.DataFrame):
+            logger.error(f"Expected DataFrame, got {type(df)}")
+            return pd.DataFrame(columns=['District', 'Assessed_Value', 'Base_PILT', 'Deduction', 'PILT_Due', 'Levy_Rate'])
+        
+        # Log some info about the dataframe
+        logger.info(f"Aggregating PILT data for {len(df)} records across {df['District'].nunique()} districts")
+            
+        # Group by district and sum the relevant columns
+        summary = df.groupby('District').agg({
+            'Assessed_Value': 'sum',
+            'Base_PILT': 'sum',
+            'Deduction': 'sum',
+            'PILT_Due': 'sum'
+        }).reset_index()
+        
+        # Add average levy rate per district
+        levy_rates = df.groupby('District')['Levy_Rate'].mean().reset_index()
+        summary = summary.merge(levy_rates, on='District')
+        
+        # Format values for better display
+        for col in ['Assessed_Value', 'Base_PILT', 'Deduction', 'PILT_Due']:
+            if col in summary.columns:
+                summary[col] = summary[col].round(2)
+        
+        # Add PILT percent column
+        if 'PILT_Due' in summary.columns:
+            total_pilt = summary['PILT_Due'].sum()
+            if total_pilt > 0:
+                summary['PILT_Percent'] = (summary['PILT_Due'] / total_pilt * 100).round(1)
+            else:
+                summary['PILT_Percent'] = 0
+        
+        logger.info(f"Successfully aggregated data for {len(summary)} districts")
+        return summary
+        
+    except Exception as e:
+        logger.error(f"Error in aggregate_pilt_by_district: {str(e)}")
+        return pd.DataFrame(columns=['District', 'Assessed_Value', 'Base_PILT', 'Deduction', 'PILT_Due', 'Levy_Rate'])
 
 def calculate_year_over_year_changes(current_df: pd.DataFrame, previous_df: pd.DataFrame) -> pd.DataFrame:
     """

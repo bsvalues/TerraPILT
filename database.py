@@ -28,18 +28,45 @@ def get_database_url() -> str:
     
     Returns:
         str: Database connection URL
+        
+    Raises:
+        ValueError: If required database environment variables are missing
     """
     if 'DATABASE_URL' in os.environ:
+        logger.info("Using DATABASE_URL environment variable")
         return os.environ.get('DATABASE_URL')
     else:
-        # Construct connection string from individual credentials
-        user = os.environ.get('PGUSER', '')
-        password = os.environ.get('PGPASSWORD', '')
-        host = os.environ.get('PGHOST', '')
-        port = os.environ.get('PGPORT', '5432')
-        database = os.environ.get('PGDATABASE', '')
+        # Check for required environment variables
+        required_vars = ['PGUSER', 'PGPASSWORD', 'PGDATABASE']
+        missing_vars = [var for var in required_vars if not os.environ.get(var)]
         
-        return f"postgresql://{user}:{password}@{host}:{port}/{database}"
+        if missing_vars:
+            error_msg = f"Missing required database environment variables: {', '.join(missing_vars)}"
+            logger.error(error_msg)
+            
+            # Fall back to default values for development only
+            if os.environ.get('REPL_ID'):
+                logger.warning("Using development fallback connection values")
+                # Default development values
+                user = os.environ.get('PGUSER', 'postgres')
+                password = os.environ.get('PGPASSWORD', 'postgres')
+                database = os.environ.get('PGDATABASE', 'postgres')
+            else:
+                raise ValueError(error_msg)
+        else:
+            # Get values from environment
+            user = os.environ.get('PGUSER', '')
+            password = os.environ.get('PGPASSWORD', '')
+            database = os.environ.get('PGDATABASE', '')
+        
+        # These variables have reasonable defaults
+        host = os.environ.get('PGHOST', 'localhost')
+        port = os.environ.get('PGPORT', '5432')
+        
+        connection_string = f"postgresql://{user}:{password}@{host}:{port}/{database}"
+        logger.info(f"Database connection to {host}:{port}/{database} (user: {user})")
+        
+        return connection_string
 
 def get_engine(force_new: bool = False):
     """
@@ -56,13 +83,21 @@ def get_engine(force_new: bool = False):
     if _ENGINE is None or force_new:
         try:
             # Create engine with connection pooling
+            # Adding connect_args to handle SSL connection issues
             _ENGINE = create_engine(
                 get_database_url(),
                 poolclass=QueuePool,
                 pool_size=5,
                 max_overflow=10,
                 pool_timeout=30,
-                pool_recycle=1800  # Recycle connections after 30 minutes
+                pool_recycle=300,  # Recycle connections after 5 minutes for better reliability
+                connect_args={
+                    'connect_timeout': 10,  # Connection timeout in seconds
+                    'keepalives': 1,        # Enable TCP keepalives
+                    'keepalives_idle': 60,  # Seconds between TCP keepalives
+                    'keepalives_interval': 10, # Seconds between keepalive probes
+                    'keepalives_count': 5   # Number of TCP keepalives before giving up
+                }
             )
             logger.info("Database engine created successfully")
         except Exception as e:
@@ -106,38 +141,65 @@ def session_scope():
     finally:
         session.close()
 
-def execute_query(query: str, params: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
+def execute_query(query: str, params: Optional[Dict[str, Any]] = None, max_retries: int = 3) -> pd.DataFrame:
     """
     Execute a SQL query with parameters and return results as DataFrame.
     
     Args:
         query (str): SQL query to execute
         params (dict, optional): Parameters for the query
+        max_retries (int, optional): Maximum number of retry attempts
         
     Returns:
         pd.DataFrame: Query results
         
     Raises:
-        Exception: If query execution fails
+        Exception: If query execution fails after all retries
     """
-    try:
-        engine = get_engine()
-        with engine.connect() as connection:
-            if params:
-                result = connection.execute(text(query), params)
-            else:
-                result = connection.execute(text(query))
+    last_exception = None
+    
+    for attempt in range(max_retries):
+        try:
+            # Get a new engine if this is a retry attempt
+            engine = get_engine(force_new=(attempt > 0))
             
-            # Convert result to DataFrame
-            if result.returns_rows:
-                df = pd.DataFrame(result.fetchall())
-                if not df.empty:
-                    df.columns = result.keys()
-                return df
-            return pd.DataFrame()
-    except Exception as e:
-        logger.error(f"Error executing query: {str(e)}")
-        raise Exception(f"Error executing query: {str(e)}")
+            with engine.connect() as connection:
+                # Set a statement timeout to prevent long-running queries
+                connection.execute(text("SET statement_timeout = '30s'"))
+                
+                if params:
+                    result = connection.execute(text(query), params)
+                else:
+                    result = connection.execute(text(query))
+                
+                # Convert result to DataFrame
+                if result.returns_rows:
+                    df = pd.DataFrame(result.fetchall())
+                    if not df.empty:
+                        df.columns = result.keys()
+                    logger.info(f"Query executed successfully, returned {len(df)} rows")
+                    return df
+                
+                logger.info("Query executed successfully (no rows returned)")
+                return pd.DataFrame()
+                
+        except Exception as e:
+            last_exception = e
+            logger.warning(f"Query execution failed (attempt {attempt+1}/{max_retries}): {str(e)}")
+            
+            # If this is an operational error (connection related) wait and retry
+            if "OperationalError" in str(type(e)):
+                import time
+                retry_delay = (attempt + 1) * 2  # Exponential backoff
+                logger.info(f"Connection error, retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            else:
+                # For non-connection errors, don't retry
+                break
+    
+    # If we get here, all retries failed
+    logger.error(f"Error executing query after {max_retries} attempts: {str(last_exception)}")
+    raise Exception(f"Error executing query: {str(last_exception)}")
 
 def get_pilt_data(year: Optional[int] = None) -> pd.DataFrame:
     """
