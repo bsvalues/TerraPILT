@@ -30,8 +30,17 @@ def get_database_url():
         
         return f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
-def create_tables():
-    """Create all tables defined in the models."""
+def create_tables(force_recreate=False):
+    """
+    Create all tables defined in the models.
+    
+    Args:
+        force_recreate (bool, optional): Force recreate tables if they already exist. 
+            Default is False which will only create missing tables.
+    
+    Returns:
+        bool: True if successful, False if failed
+    """
     try:
         engine = create_engine(get_database_url())
         inspector = inspect(engine)
@@ -46,33 +55,50 @@ def create_tables():
         ]
         
         existing_model_tables = [t for t in model_tables if t in existing_tables]
+        missing_tables = [t for t in model_tables if t not in existing_tables]
+        
         if existing_model_tables:
-            logger.warning(f"Some tables already exist: {existing_model_tables}")
-            confirm = input("Do you want to drop and recreate these tables? (y/N): ")
-            if confirm.lower() != 'y':
-                logger.info("Migration aborted.")
-                return
+            logger.info(f"Existing tables: {existing_model_tables}")
+            
+            if force_recreate:
+                logger.warning(f"Dropping and recreating tables: {existing_model_tables}")
+                # Only drop the specific tables that need to be recreated
+                for table_name in existing_model_tables:
+                    engine.execute(f"DROP TABLE IF EXISTS {table_name} CASCADE")
+                logger.info("Existing tables dropped successfully")
+            else:
+                logger.info(f"Keeping existing tables, will only create missing tables: {missing_tables}")
         
         # Create tables
         logger.info("Creating tables...")
         Base.metadata.create_all(engine)
-        logger.info("Tables created successfully.")
+        logger.info("Tables created/updated successfully.")
         
         return True
     except Exception as e:
         logger.error(f"Error creating tables: {str(e)}")
         return False
 
-def drop_tables():
-    """Drop all tables defined in the models."""
+def drop_tables(force=False):
+    """
+    Drop all tables defined in the models.
+    
+    Args:
+        force (bool, optional): Force drop without confirmation. Default is False.
+        
+    Returns:
+        bool: True if successful, False if failed
+    """
     try:
         engine = create_engine(get_database_url())
-        confirm = input("Are you sure you want to drop all tables? This will delete all data. (y/N): ")
-        if confirm.lower() != 'y':
-            logger.info("Drop operation aborted.")
-            return
         
-        logger.info("Dropping tables...")
+        if not force:
+            confirm = input("Are you sure you want to drop all tables? This will delete all data. (y/N): ")
+            if confirm.lower() != 'y':
+                logger.info("Drop operation aborted.")
+                return False
+        
+        logger.warning("Dropping all tables and data...")
         Base.metadata.drop_all(engine)
         logger.info("Tables dropped successfully.")
         
@@ -81,8 +107,17 @@ def drop_tables():
         logger.error(f"Error dropping tables: {str(e)}")
         return False
 
-def seed_sample_data():
-    """Seed the database with sample data."""
+def seed_sample_data(force_reseed=False):
+    """
+    Seed the database with sample data.
+    
+    Args:
+        force_reseed (bool, optional): Force reseed data even if some exists already. 
+            Default is False which will skip seeding if data exists.
+            
+    Returns:
+        bool: True if successful, False if failed
+    """
     try:
         engine = create_engine(get_database_url())
         Session = sessionmaker(bind=engine)
@@ -92,11 +127,21 @@ def seed_sample_data():
         existing_districts = session.query(District).count()
         if existing_districts > 0:
             logger.warning(f"Database already contains {existing_districts} districts.")
-            confirm = input("Do you want to proceed and add more sample data? (y/N): ")
-            if confirm.lower() != 'y':
-                logger.info("Seed operation aborted.")
+            
+            if not force_reseed:
+                logger.info("Seed operation skipped as data already exists.")
                 session.close()
-                return
+                return True
+            else:
+                logger.warning("Force reseeding - deleting existing data first")
+                
+                # Delete existing data (in order to maintain foreign key constraints)
+                session.query(LevyRate).delete()
+                session.query(Deduction).delete()
+                session.query(Property).delete()
+                session.query(District).delete()
+                session.commit()
+                logger.info("Existing data deleted")
         
         # Create sample districts
         logger.info("Creating sample districts...")
@@ -127,6 +172,34 @@ def seed_sample_data():
                 base_rate = levy_rates[district_id-1].rate
                 historical_rate = base_rate * (0.9 + (year - (current_year-3)) * 0.05)
                 session.add(LevyRate(district_id=district_id, year=year, rate=historical_rate))
+        
+        # Add some sample properties
+        logger.info("Creating sample properties...")
+        import random
+        from datetime import datetime
+        
+        # Create 25 properties for each district (100 total)
+        for district_id in range(1, 5):
+            for i in range(1, 26):
+                prop = Property(
+                    geo_id=f"GEO-{district_id}-{i}",
+                    district_id=district_id,
+                    assessed_value=random.uniform(100000, 2500000),
+                    market_value=random.uniform(150000, 3000000),
+                    size_acres=random.uniform(0.1, 100),
+                    created_at=datetime.now().date()
+                )
+                session.add(prop)
+        
+        # Add some deductions
+        logger.info("Creating sample deductions...")
+        deductions = [
+            Deduction(district_id=1, year=current_year, amount=25000, description="Standard deduction"),
+            Deduction(district_id=2, year=current_year, amount=15000, description="Road maintenance credit"),
+            Deduction(district_id=3, year=current_year, amount=10000, description="Education credit"),
+            Deduction(district_id=4, year=current_year, amount=5000, description="Municipal services credit")
+        ]
+        session.add_all(deductions)
         
         session.commit()
         logger.info("Sample data seeded successfully.")

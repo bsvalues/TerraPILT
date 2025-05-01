@@ -23,6 +23,7 @@ from calculations import (
     calculate_year_over_year_changes,
     generate_historical_pilt_trend
 )
+from initialize_database import initialize_database
 
 # Configure Streamlit page
 st.set_page_config(
@@ -30,6 +31,16 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Initialize the database - only happens once per session
+if 'database_initialized' not in st.session_state:
+    try:
+        with st.spinner("Initializing database..."):
+            initialize_database()
+        st.session_state.database_initialized = True
+    except Exception as e:
+        st.error(f"Error initializing database: {str(e)}")
+        st.session_state.database_initialized = False
 
 # Create session state for storing data
 if 'pilt_data' not in st.session_state:
